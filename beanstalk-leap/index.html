@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Beanstalk Leap</title>
+<meta name="theme-color" content="#3b8fe0">
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;background:#0d2a4d;overflow:hidden;font-family:'Fredoka',system-ui,sans-serif;color:#fff;user-select:none;-webkit-user-select:none;touch-action:none}
+body{position:fixed;inset:0;container-type:size}
+#stage{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(100cqw,calc(100cqh*9/16));height:min(100cqh,calc(100cqw*16/9));overflow:hidden;container-type:size;background:#7fc4ff}
+#cv{position:absolute;inset:0;width:100%;height:100%}
+.screen{position:absolute;inset:0;display:none}
+body[data-screen=title] #title,body[data-screen=map] #map,body[data-screen=play] #play{display:block}
+.b3d{font-family:'Lilita One',cursive;letter-spacing:.2cqw;color:#fff;border:.7cqw solid #ffffffc0;border-radius:6cqw;cursor:pointer;text-shadow:0 .5cqw 0 #0004;transition:translate .08s}
+.green{background:linear-gradient(#7be86a,#3fbf3a 50%,#2e9e2a);box-shadow:inset 0 1.2cqw 0 #ffffff70,0 1.5cqw 0 #1d6a1a,0 2.6cqw 2.6cqw #0005}
+.blue{background:linear-gradient(#7cc4ff,#3b8fe0 50%,#2a70c0);box-shadow:inset 0 1.2cqw 0 #ffffff70,0 1.5cqw 0 #1a447a,0 2.6cqw 2.6cqw #0005}
+.orange{background:linear-gradient(#ffc76b,#f5962a 50%,#d97a12);box-shadow:inset 0 1.2cqw 0 #ffffff70,0 1.5cqw 0 #8a4a08,0 2.6cqw 2.6cqw #0005}
+.b3d:active{translate:0 1.3cqw;box-shadow:inset 0 1.2cqw 0 #ffffff50,0 .2cqw 0 #0006}
+
+#loading{position:absolute;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:#7fc4ff;font-family:'Lilita One',cursive;font-size:7cqw}
+
+/* title */
+#title{background:url(bg-village.webp) center/cover}
+#title .logo{position:absolute;top:7cqh;left:0;right:0;text-align:center;font-family:'Lilita One',cursive;font-size:17cqw;line-height:.92;color:#ffe45c;text-shadow:0 1.2cqw 0 #3d8a1c,0 2.2cqw 0 #1d4d0c,0 3cqw 3cqw #000a;letter-spacing:.5cqw}
+#title .logo small{display:block;font-size:6cqw;color:#fff;text-shadow:0 .6cqw 0 #1d4d0c,0 1cqw 2cqw #000a;margin-top:2cqw;letter-spacing:.3cqw}
+#title .heroPic{position:absolute;left:50%;bottom:21cqh;height:30cqh;transform:translateX(-50%);animation:hop 1.6s ease-in-out infinite;filter:drop-shadow(0 2cqw 2cqw #0006)}
+@keyframes hop{0%,100%{translate:0 0}45%{translate:0 -5cqh}}
+#playBtn{position:absolute;left:50%;bottom:8cqh;transform:translateX(-50%);font-size:10cqw;padding:2.4cqw 14cqw}
+
+/* map */
+#map{background:url(bg-sky.webp) center/cover}
+#mapTop{position:absolute;left:0;right:0;top:0;display:flex;gap:2cqw;align-items:center;padding:4cqw}
+.chip{font-family:'Lilita One',cursive;font-size:5.6cqw;padding:1cqw 3.4cqw;border-radius:5cqw;background:#ffffffd0;color:#2a5a9a;box-shadow:0 1cqw 0 #2a5a9a40}
+#mapTop .sp{flex:1}
+#mute{width:11cqw;height:11cqw;border-radius:50%;border:0;background:#ffffffd0;font-size:5.4cqw}
+#mapTitle{position:absolute;top:17cqw;left:0;right:0;text-align:center;font-family:'Lilita One',cursive;font-size:9cqw;color:#fff;text-shadow:0 .8cqw 0 #2a5a9a,0 1.4cqw 2cqw #0006}
+#levels{position:absolute;top:31cqw;bottom:4cqw;left:6cqw;right:6cqw;overflow-y:auto;touch-action:pan-y;display:flex;flex-direction:column;gap:3cqw;padding-bottom:4cqw}
+.lvl{display:flex;align-items:center;gap:3.4cqw;padding:2.4cqw 4cqw;border-radius:5cqw;border:.7cqw solid #fff;background:linear-gradient(#ffffff,#e3f1ff);color:#2a5a9a;box-shadow:0 1.4cqw 0 #2a5a9a55,0 2cqw 3cqw #0003;font-family:'Lilita One',cursive;text-align:left}
+.lvl .n{width:13cqw;height:13cqw;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:6.4cqw;color:#fff;background:radial-gradient(circle at 35% 30%,#9cf08a,#3fbf3a 60%,#2a8a26);box-shadow:inset 0 -.8cqw 0 #0002;flex:none}
+.lvl .nm{flex:1;font-size:5.4cqw}
+.lvl .st{font-size:5.2cqw;letter-spacing:.3cqw}.lvl .st i{font-style:normal;color:#c7d8ec}.lvl .st i.on{color:#ffc21a;text-shadow:0 0 1.2cqw #ffb800}
+.lvl.locked{opacity:.55}.lvl.locked .n{background:#9aa8b8}
+.lvl.next{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.03)}}
+
+/* play HUD */
+#hud{position:absolute;left:3cqw;right:3cqw;top:3cqw;z-index:5;display:flex;align-items:center;gap:2cqw;pointer-events:none}
+#pause{pointer-events:auto;width:10cqw;height:10cqw;border-radius:50%;border:0;background:#ffffffd0;color:#2a5a9a;font-size:4.6cqw}
+#hearts,#scoreBox,#feath{font-size:5cqw;padding:.8cqw 2.6cqw;border-radius:4cqw;background:#ffffffc8;color:#2a5a9a;font-family:'Lilita One',cursive}
+#hearts .off{filter:grayscale(1) opacity(.45)}
+#hud .sp{flex:1}
+#progWrap{position:absolute;left:16cqw;right:4cqw;top:15cqw;z-index:5;height:2.6cqw;border-radius:2cqw;background:#ffffff70;pointer-events:none}
+#prog{height:100%;width:0;border-radius:2cqw;background:linear-gradient(90deg,#3fbf3a 0 50%,#ffd23f 50%)}
+#progWrap::after{content:"🏰";position:absolute;right:-3cqw;top:50%;transform:translateY(-55%);font-size:6cqw}
+#lvlTitle{display:none}
+#say{position:absolute;left:6cqw;right:6cqw;bottom:6cqw;z-index:6;padding:2.6cqw 4cqw;border-radius:4cqw;background:#ffffffe6;color:#2a5a9a;font-size:4cqw;font-weight:600;text-align:center;box-shadow:0 1cqw 0 #2a5a9a40;opacity:0;transform:translateY(3cqw);transition:.35s;pointer-events:none}
+#say.on{opacity:1;transform:none}
+#flash,#fade{position:absolute;inset:0;z-index:4;opacity:0;pointer-events:none}
+#fade{background:#fff}
+.pop{position:absolute;z-index:7;transform:translate(-50%,-50%);font-family:'Lilita One',cursive;font-size:7cqw;color:#ffe45c;text-shadow:0 .6cqw 0 #8a5a12,0 1cqw 2cqw #0008;pointer-events:none;animation:up 1.2s ease-out forwards;white-space:nowrap}
+@keyframes up{from{opacity:0;translate:-50% 2cqw;scale:.7}20%{opacity:1;scale:1.1}to{opacity:0;translate:-50% -12cqw}}
+
+/* cards */
+.card{position:absolute;inset:0;z-index:10;display:none;align-items:center;justify-content:center;background:#0d2a4d88}
+.card .in{width:86cqw;padding:6cqw 5cqw 5cqw;border-radius:7cqw;text-align:center;background:linear-gradient(#ffffff,#dcefff);color:#2a5a9a;border:1cqw solid #fff;box-shadow:0 1.6cqw 0 #2a5a9a66,0 3cqw 6cqw #0008;animation:pin .45s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pin{from{transform:scale(.6);opacity:0}}
+.card h1{font-family:'Lilita One',cursive;font-weight:400;font-size:10cqw;margin:0;color:#3fbf3a;text-shadow:0 .7cqw 0 #1d6a1a33}
+.card p{font-size:4.2cqw;margin:2.4cqw 0;line-height:1.35}
+.card img{height:28cqw}
+.card .row{display:flex;gap:3cqw;justify-content:center;margin-top:3.4cqw;flex-wrap:wrap}
+.card .row button{font-size:6.4cqw;padding:2cqw 7cqw}
+.card .small{font-size:4.6cqw!important;padding:1.4cqw 5cqw!important}
+.stars{font-size:12cqw;letter-spacing:1cqw}.stars .off{filter:grayscale(1) opacity(.3)}
+.how{text-align:left;font-size:3.9cqw;line-height:1.45;background:#ffffffb0;border-radius:4cqw;padding:2.4cqw 4cqw;margin:2cqw 0}
+</style>
+</head>
+<body data-screen="loading">
+<div id="stage">
+  <canvas id="cv"></canvas>
+  <div id="loading">Growing the beanstalk…</div>
+
+  <section class="screen" id="title">
+    <div class="logo">BEANSTALK<br>LEAP<small>Climb · Jump · Reach the castle</small></div>
+    <img class="heroPic" src="hero-cheer.webp" alt="">
+    <button class="b3d green" id="playBtn">PLAY</button>
+  </section>
+
+  <section class="screen" id="map">
+    <div id="mapTop"><span class="chip">⭐ <span id="mStars">0</span></span><span class="chip">🪙 <span id="mCoins">0</span></span><span class="sp"></span><button id="mute">🔊</button></div>
+    <div id="mapTitle">Choose a level</div>
+    <div id="levels"></div>
+  </section>
+
+  <section class="screen" id="play">
+    <div id="hud"><button id="pause" aria-label="Pause">⏸</button><span id="hearts"></span><span class="sp"></span><span id="feath">🪶 <span id="feathN">0</span></span><span id="scoreBox">🪙 <span id="score">0</span></span></div>
+    <div id="progWrap"><div id="prog"></div></div>
+    <div id="say"></div>
+    <div id="flash"></div><div id="fade"></div>
+    <span id="lvlTitle"></span>
+
+    <div class="card" id="climbCard"><div class="in">
+      <img src="hero-climb.webp" alt="">
+      <h1 id="climbTitle">Climb!</h1>
+      <div class="how"><b>1. The beanstalk:</b> tap the <b>left</b> or <b>right</b> side of the screen to swap sides. Dodge bees and caterpillars.<br><b>2. The clouds:</b> <b>press and hold</b> to power up your jump, watch the dotted arc, then <b>let go</b>. Hold on the left side to jump backwards.<br>☁️ safe · 💗 bouncy · 🌧️ melts · ⚡ zaps · 🌵 thorns</div>
+      <div class="row"><button class="b3d green" id="climbGo">GO!</button></div>
+    </div></div>
+    <div class="card" id="winCard"><div class="in">
+      <img src="hero-cheer.webp" alt="">
+      <h1>CASTLE REACHED!</h1>
+      <div class="stars" id="winStars"></div>
+      <p id="winScore" style="font-family:'Lilita One',cursive;font-size:6cqw"></p>
+      <p id="winMsg"></p>
+      <div class="row"><button class="b3d green" id="winNext">NEXT ▶</button></div>
+      <div class="row"><button class="b3d blue small again">↺ AGAIN</button><button class="b3d orange small toMap">LEVELS</button></div>
+    </div></div>
+    <div class="card" id="loseCard"><div class="in">
+      <img src="hero-fall.webp" alt="">
+      <h1 style="color:#e2462a">OH NO!</h1>
+      <p id="loseWhy"></p>
+      <div class="row"><button class="b3d green again">↺ TRY AGAIN</button></div>
+      <div class="row"><button class="b3d orange small toMap">LEVELS</button></div>
+    </div></div>
+    <div class="card" id="pauseCard"><div class="in">
+      <h1>PAUSED</h1>
+      <div class="row"><button class="b3d green" id="resume">▶ RESUME</button></div>
+      <div class="row"><button class="b3d blue small again">↺ RESTART</button><button class="b3d orange small toMap">LEVELS</button></div>
+    </div></div>
+  </section>
+</div>
+<script src="game.js"></script>
+</body>
+</html>

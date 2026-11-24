@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://tinygamehub.com/sitemap.xml

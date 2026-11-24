@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Red Truck Farm Run</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{height:100%;overflow:hidden;background:#3aa0f0;font-family:"Baloo 2",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#fff;touch-action:none}
+canvas{display:block;position:fixed;inset:0}
+#hud{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 10px) 60px 0 12px;display:none;flex-direction:column;gap:8px;pointer-events:none}
+.row{display:flex;align-items:center;gap:8px}
+.pill{background:#3b1f0ecc;border:2px solid #ffffff55;border-radius:20px;padding:4px 12px 4px 6px;font-weight:800;font-size:17px;display:flex;align-items:center;gap:6px;box-shadow:0 3px 0 #0003}
+.pill img{width:26px;height:26px;object-fit:contain}
+#fuelWrap{flex:1;max-width:200px}
+#fuelBar{flex:1;height:13px;border-radius:7px;background:#ffffff33;overflow:hidden}
+#fuelBar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#e74c3c,#f1c40f 40%,#2ecc71);transition:width .15s}
+#fuelBar.low{animation:blink .5s infinite}
+@keyframes blink{50%{opacity:.35}}
+#prog{position:relative;height:10px;border-radius:5px;background:#3b1f0e88;margin-right:18px}
+#prog i{position:absolute;left:0;top:0;bottom:0;border-radius:5px;background:#ffd84d}
+#prog b{position:absolute;top:-11px;width:34px;height:23px;transform:translateX(-50%);background:url(web/car-full.webp) center/contain no-repeat}
+#prog em{position:absolute;right:-20px;top:-13px;width:28px;height:28px;background:url(web/barn.webp) center/contain no-repeat}
+#distTxt{font-size:13px;font-weight:800;text-shadow:0 1px 3px #000a}
+#pauseBtn{position:fixed;right:12px;top:calc(env(safe-area-inset-top) + 10px);width:40px;height:40px;border-radius:50%;border:2px solid #ffffff66;background:#3b1f0ecc;color:#fff;font-size:15px;font-weight:900;display:none;z-index:5}
+.pedal{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 16px);width:min(28vw,128px);height:min(28vw,128px);border:0;background:center/contain no-repeat;display:none;z-index:4;filter:drop-shadow(0 6px 0 #0004);transition:transform .06s}
+#backBtn{left:14px;background-image:url(web/btn-back.webp)}
+#fwdBtn{right:14px;background-image:url(web/btn-forward.webp)}
+.pedal.on{transform:translateY(5px) scale(.96);filter:drop-shadow(0 2px 0 #0004) brightness(1.12)}
+#overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#1d3a1255;z-index:10;padding:20px}
+#overlay.show{display:flex}
+.card{width:min(94vw,400px);background:linear-gradient(170deg,#fff8e4,#ffe9b5);color:#4a2a12;border:5px solid #8b4a1f;border-radius:26px;padding:22px 20px 18px;text-align:center;box-shadow:0 10px 0 #5e2f12,0 24px 60px #0007}
+.card h1{font-size:36px;font-weight:900;line-height:1;color:#c62828;text-shadow:0 3px 0 #7a1414}
+.card h1 span{display:block;font-size:20px;color:#2e7d32;text-shadow:none;letter-spacing:.06em;margin-top:4px}
+.card h2{font-size:26px;color:#c62828;margin-bottom:4px}
+.card p{font-size:15px;line-height:1.45;margin:8px 0}
+.card .hero{width:100%;max-width:260px;margin:6px auto 0;display:block}
+.card button{border:0;border-radius:14px;padding:13px 16px;font-size:16px;font-weight:900;background:#8b4a1f;color:#fff;margin-top:8px;box-shadow:0 4px 0 #5e2f12;font-family:inherit}
+.card button.main{background:linear-gradient(#ffd84d,#f5b400);color:#5e2f12;width:100%;font-size:20px;box-shadow:0 5px 0 #b07a00}
+.lv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 6px}
+.lv button{margin:0;padding:10px 4px;font-size:13px;line-height:1.2;background:#fff;color:#5e2f12;border:3px solid #e0c48a;box-shadow:none}
+.lv button.sel{border-color:#c62828;background:#ffefc2}
+.lv button:disabled{opacity:.45}
+.coinrow{display:inline-flex;align-items:center;gap:6px;font-weight:900;font-size:18px}
+.coinrow img{width:26px}
+#loading{position:fixed;inset:0;display:grid;place-items:center;background:#3aa0f0;z-index:20;font-weight:900;font-size:20px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">
+  <div class="row"><div class="pill"><img src="web/coin.webp" alt=""><span id="coins">0</span></div>
+   <div class="pill" id="fuelWrap"><img src="web/fuel-can.webp" alt=""><div id="fuelBar"><i></i></div></div></div>
+  <div id="prog"><i></i><b></b><em></em></div>
+  <div id="distTxt"></div>
+</div>
+<button id="pauseBtn">II</button>
+<button class="pedal" id="backBtn" aria-label="Back"></button>
+<button class="pedal" id="fwdBtn" aria-label="Go"></button>
+<div id="overlay"></div>
+<div id="loading">Loading the farm… <span id="ldp">0%</span></div>
+<script>
+'use strict';
+{
+const $=s=>document.querySelector(s);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,t)=>a+(b-a)*t;
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v);}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
+function rng(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
+
+/* ---------- images ---------- */
+const NAMES=['sky','far-hills','mid-fields','fence','road','car-body','car-full','car-wheel','coin','fuel-can','dust','speedbreaker','log','haybale','pothole','puddle','ramp','barrier','cone','farm-gate','barn','farmhouse','silo','windmill-tower','windmill-blades','cow','cow-grazing','horse','sheep','pig','chicken','dog','farmer','scarecrow','tree','sunflowers','tractor','mailbox'];
+const IMG={};let loaded=0;
+const ready=Promise.all(NAMES.map(n=>new Promise(res=>{const i=new Image();i.onload=i.onerror=()=>{loaded++;$('#ldp').textContent=Math.round(loaded/NAMES.length*100)+'%';res();};i.src='web/'+n+'.webp';IMG[n]=i;})));
+
+/* ---------- canvas ---------- */
+const cv=$('#c'),ctx=cv.getContext('2d');let W,H,S;
+function resize(){const d=Math.min(2,devicePixelRatio||1);W=innerWidth;H=innerHeight;cv.width=W*d;cv.height=H*d;cv.style.width=W+'px';cv.style.height=H+'px';ctx.setTransform(d,0,0,d,0,0);ctx.imageSmoothingQuality='high';S=clamp(Math.min(W/11.5,H/8.5),24,72);}
+addEventListener('resize',resize);resize();
+
+/* ---------- levels & terrain ---------- */
+const LEVELS=[
+ {name:'Sunny Lane',len:450,seed:101,ramps:[0.5,0.75],gap:[24,36],hills:0,mix:{bump:4,log:2,puddle:2,pot:2,ramp:3}},
+ {name:'Windmill Way',len:600,seed:202,ramps:[0.95,1.3],gap:[20,32],hills:0.9,mix:{bump:3,log:2,hay:2,barrier:2,puddle:2,pot:1,ramp:4,hill:2}},
+ {name:'Barnyard Jumps',len:750,seed:303,ramps:[1.25,1.75],gap:[17,28],hills:1.3,mix:{bump:3,log:2,hay:3,barrier:3,puddle:1,pot:1,ramp:5,hill:2}}];
+let LV,feats,coins,fuels,decor,level=0;
+function pickW(r,o){let t=0;for(const k in o)t+=o[k];let v=r()*t;for(const k in o){v-=o[k];if(v<=0)return k;}return Object.keys(o)[0];}
+function buildLevel(i){
+ const L=LEVELS[i],r=rng(L.seed);feats=[];coins=[];fuels=[];decor=[];
+ let x=26,n=0;
+ while(x<L.len-32){
+  n++;let t=pickW(r,L.mix);if(n<=3)t=['bump','puddle','log'][n-1];
+  let f;
+  if(t==='bump')f={t,c:x,w:0.9,h:0.17};
+  else if(t==='log')f={t,c:x,w:0.85,h:0.4};
+  else if(t==='hay')f={t,c:x,w:1.3,h:0.46};
+  else if(t==='barrier')f={t,c:x,w:1.7,h:0.38};
+  else if(t==='pot')f={t,c:x,w:1.4,h:-0.3};
+  else if(t==='puddle')f={t,c:x,w:2.6,h:-0.07};
+  else if(t==='hill'){const w=lerp(14,24,r());f={t,c:x+w/2,w,h:L.hills*lerp(0.8,1.3,r())};}
+  else{const hh=lerp(L.ramps[0],L.ramps[1],r()),ln=hh*4.2;f={t:'ramp',x0:x,L:ln,h:hh,drop:hh*1.6};
+   decor.push({k:'cone',x:x-1.2,road:true});
+   for(let j=0;j<5;j++){const q=(j+1)/6;coins.push({x:x+ln+q*hh*11,y:hh+1.8+Math.sin(q*Math.PI)*1.8*hh,got:false});}}
+  feats.push(f);
+  const end=f.t==='ramp'?f.x0+f.L+f.drop+2:f.c+f.w/2+1;
+  const gap=lerp(L.gap[0],L.gap[1],r());
+  if(r()<0.75){const cx0=end+gap*0.3;for(let j=0;j<5;j++)coins.push({x:cx0+j*1.1,y:null,got:false});}
+  x=end+gap;}
+ for(let fx=140;fx<L.len-40;fx+=lerp(140,175,r()))fuels.push({x:fx,got:false});
+ coins.forEach(c=>{if(c.y==null)c.y=ground(c.x)+1.0;});
+ fuels.forEach(f=>{f.x=clearSpot(f.x);f.y=ground(f.x)+0.85;});
+ // roadside farm life (behind the road)
+ const kinds=[['cow',1.7,3],['cow-grazing',1.4,3],['horse',2.1,2],['sheep',1.1,3],['pig',1.0,2],['chicken',0.55,3],['dog',0.95,1],['scarecrow',2.3,1],['tree',4.6,3],['sunflowers',1.9,2],['tractor',2.3,1],['mailbox',1.4,1],['haybale',1.3,2],['farmer',1.85,1]];
+ const wsum=kinds.reduce((a,k)=>a+k[2],0);
+ for(let dx=-6;dx<L.len+20;dx+=lerp(3.5,7.5,r())){let v=r()*wsum,k=kinds[0];for(const kk of kinds){v-=kk[2];if(v<=0){k=kk;break;}}
+  decor.push({k:k[0],h:k[1],x:dx,flip:r()<0.35&&k[0]!=='tractor',z:r()});
+  if(k[0]==='chicken')decor.push({k:'chicken',h:0.5,x:dx+0.7,flip:r()<0.5,z:r()});}
+ decor.sort((a,b)=>a.z-b.z);
+ LV=L;}
+function clearSpot(x){for(let n=0;n<40;n++){if(!feats.some(f=>{const a=f.t==='ramp'?f.x0:f.c-f.w/2,b=f.t==='ramp'?f.x0+f.L+f.drop:f.c+f.w/2;return x>a-2&&x<b+2;}))return x;x+=1.5;}return x;}
+function ground(x){
+ let y=0;
+ for(const f of feats){
+  if(f.t==='ramp'){if(x>f.x0&&x<f.x0+f.L)y+=f.h*(x-f.x0)/f.L;else if(x>=f.x0+f.L&&x<f.x0+f.L+f.drop)y+=f.h*(1-(x-f.x0-f.L)/f.drop);continue;}
+  const d=x-f.c,hw=f.w/2;if(d<=-hw||d>=hw)continue;
+  if(f.t==='log'||f.t==='hay')y+=f.h*Math.sqrt(1-(d/hw)**2);
+  else if(f.t==='barrier')y+=f.h*clamp((hw-Math.abs(d))/0.45,0,1);
+  else{const c=Math.cos(Math.PI*d/f.w);y+=f.h*c*c;}}
+ return y;}
+function slippery(x){for(const f of feats)if(f.t==='puddle'&&Math.abs(x-f.c)<f.w/2)return true;return false;}
+
+/* ---------- truck physics (position-based) ---------- */
+// truck geometry measured from the artwork: wheel centres 745px apart = 2.55 m
+const PXM=292,ORX=692,ORY=818,WB=1.275,WR=0.5;
+const BODY=[[-2.1,0.2,1.3],[2.6,0.05,2.2],[2.5,1.35,1.1],[-2.15,1.6,0.6],[0.05,2.25,0.35]];
+const A0=Math.atan2(BODY[1][1]-BODY[0][1],BODY[1][0]-BODY[0][0]);
+const G=13,SUB=8,IT=5;
+let pts,cons,wheels,car;
+function P(x,y,m){const p={x,y,px:x,py:y,im:1/m};pts.push(p);return p;}
+function C(a,b,k){cons.push({a,b,len:Math.hypot(a.x-b.x,a.y-b.y),k});}
+function makeCar(x0){
+ pts=[];cons=[];const y0=ground(x0)+WR+0.15;
+ const body=BODY.map(([a,b,m])=>P(x0+a,y0+b,m));
+ for(let i=0;i<body.length;i++)for(let j=i+1;j<body.length;j++)C(body[i],body[j],1);
+ const wr=P(x0-WB,y0,1.3),wf=P(x0+WB,y0,1.3);
+ for(const w of [wr,wf]){C(w,body[0],0.32);C(w,body[1],0.32);C(w,body[3],0.32);}
+ wheels=[{p:wr,w:0,a:0,g:0},{p:wf,w:0,a:0,g:0}];
+ car={body,head:body[4],crashed:false,flipT:0,air:0};}
+function center(){let x=0,y=0;for(const p of car.body){x+=p.x;y+=p.y;}return{x:x/5,y:y/5};}
+function angle(){const a=car.body[0],b=car.body[1];return Math.atan2(b.y-a.y,b.x-a.x)-A0;}
+function nearestOnGround(x,y,r){
+ let best=null;const step=0.12;
+ for(let sx=x-r-0.2;sx<=x+r+0.2;sx+=step){const ax=sx,ay=ground(ax),bx=sx+step,by=ground(bx);
+  const vx=bx-ax,vy=by-ay,l2=vx*vx+vy*vy;let t=((x-ax)*vx+(y-ay)*vy)/l2;t=clamp(t,0,1);
+  const qx=ax+vx*t,qy=ay+vy*t,dx=x-qx,dy=y-qy,d=Math.hypot(dx,dy);
+  if(!best||d<best.d)best={d,nx:d>1e-6?dx/d:0,ny:d>1e-6?dy/d:1};}
+ if(y<ground(x)){best.d=-best.d;best.nx=-best.nx;best.ny=-best.ny;}
+ return best;}
+let input={f:false,b:false},fuel=100,wall=0,camX=0,camY=0,got=0,state='load',endT=0,landed=0;
+function step(dt){
+ const h=dt/SUB;
+ const anyGround=wheels.some(w=>w.g>0);
+ if(anyGround&&car.air>0.45)landed=1;
+ car.air=anyGround?0:car.air+dt;
+ const canDrive=fuel>0&&!car.crashed;
+ for(const w of wheels){
+  if(canDrive&&input.f)w.w=Math.min(w.w+32*dt,36);
+  else if(canDrive&&input.b)w.w=Math.max(w.w-(w.w>0?60:26)*dt,-15);
+  else w.w*=1-0.6*dt;}
+ if(canDrive&&input.f)fuel-=2.1*dt;else fuel-=0.12*dt;fuel=Math.max(0,fuel);
+ for(let s=0;s<SUB;s++){
+  if(car.air>0.12&&!car.crashed&&(input.f||input.b)){const c=center(),aa=(input.f?2.0:-2.0)*h*h;
+   for(const p of pts){const rx=p.x-c.x,ry=p.y-c.y;p.px+=ry*aa;p.py-=rx*aa;}}
+  if(anyGround){const c=center();let num=0,den=0;for(const p of car.body){const rx=p.x-c.x,ry=p.y-c.y,vx=(p.x-p.px)/h,vy=(p.y-p.py)/h;num+=rx*vy-ry*vx;den+=rx*rx+ry*ry;}
+   const dw=-(num/den)*Math.min(1,4.5*h);for(const p of pts){const rx=p.x-c.x,ry=p.y-c.y;p.px+=dw*ry*h;p.py-=dw*rx*h;}}
+  for(const p of pts){const vx=(p.x-p.px)*0.9995,vy=(p.y-p.py)*0.9995;p.px=p.x;p.py=p.y;p.x+=vx;p.y+=vy-G*h*h;}
+  for(let it=0;it<IT;it++){
+   for(const c of cons){const dx=c.b.x-c.a.x,dy=c.b.y-c.a.y,d=Math.hypot(dx,dy)||1e-6,w=c.a.im+c.b.im,k=(d-c.len)/d/w*c.k;
+    c.a.x+=dx*k*c.a.im;c.a.y+=dy*k*c.a.im;c.b.x-=dx*k*c.b.im;c.b.y-=dy*k*c.b.im;}
+   for(const w of wheels){const p=w.p,n=nearestOnGround(p.x,p.y,WR);
+    if(n.d<WR){const pen=WR-n.d;p.x+=n.nx*pen;p.y+=n.ny*pen;w.hit=true;}}
+   for(const p of car.body){const g=ground(p.x);if(p.y<g){p.y=g;const vx=p.x-p.px;p.px+=vx*0.4;car.bodyTouch=true;if(p!==car.body[0]&&p!==car.body[1])car.hitRoof=true;}}
+   for(const p of pts){if(p.x<wall+0.3){p.x=wall+0.3;if(p.px<p.x)p.px=p.x;}}
+  }
+  for(const w of wheels){
+   if(w.hit){w.g=6;const p=w.p,n=nearestOnGround(p.x,p.y,WR+0.05),tx=n.ny,ty=-n.nx;
+    const mu=slippery(p.x)?0.07:0.32;
+    const vx=(p.x-p.px)/h,vy=(p.y-p.py)/h,vt=vx*tx+vy*ty,slip=w.w*WR-vt,dv=slip*mu;
+    const nvx=vx+tx*dv*0.55,nvy=vy+ty*dv*0.55;p.px=p.x-nvx*h;p.py=p.y-nvy*h;
+    w.w-=dv*0.45/WR;}
+   else if(w.g>0)w.g--;
+   w.hit=false;w.a-=w.w*h;}
+ }
+ if(car.hitRoof&&!car.crashed)car.crashed=true;
+ car.hitRoof=false;
+ const a=angle();if(Math.abs(a)>2.3||(Math.abs(a)>1.1&&car.bodyTouch)){car.flipT+=dt;if(car.flipT>0.35)car.crashed=true;}else car.flipT=0;car.bodyTouch=false;
+}
+
+/* ---------- game flow ---------- */
+const hud=$('#hud'),fwd=$('#fwdBtn'),back=$('#backBtn'),pauseB=$('#pauseBtn'),ov=$('#overlay');
+let unlocked=store.get('rt_unlocked',1),bank=store.get('rt_coins',0),stillT=0,popups=[],dusts=[];
+function showPlayUI(on){hud.style.display=on?'flex':'none';[fwd,back,pauseB].forEach(e=>e.style.display=on?'block':'none');}
+function startLevel(i){level=i;buildLevel(i);makeCar(5);fuel=100;wall=0;camX=0;camY=0;got=0;stillT=0;endT=0;popups=[];dusts=[];state='play';ov.classList.remove('show');showPlayUI(true);}
+function endGame(kind){
+ state='end';input.f=input.b=false;fwd.classList.remove('on');back.classList.remove('on');showPlayUI(false);
+ bank+=got;store.set('rt_coins',bank);
+ const dist=Math.round(center().x);
+ if(kind==='win'){if(level+2>unlocked){unlocked=Math.min(LEVELS.length,level+2);store.set('rt_unlocked',unlocked);}
+  card('<img class="hero" src="web/farmer.webp" style="max-width:110px" alt=""><h2>You made it to the farm!</h2><p>'+LV.name+' complete</p><p class="coinrow"><img src="web/coin.webp" alt=""> '+got+' coins</p>'+(level<LEVELS.length-1?'<button class="main" id="nx">Next level ▶</button>':'<p>That\'s every level for now!</p>')+'<button id="rt">Play again</button> <button id="mn">Menu</button>');}
+ else card('<img class="hero" src="web/'+(kind==='flip'?'car-full':'fuel-can')+'.webp" style="max-width:'+(kind==='flip'?'200':'90')+'px;'+(kind==='flip'?'transform:rotate(160deg)':'')+'" alt=""><h2>'+(kind==='flip'?'Truck flipped!':'Out of fuel!')+'</h2><p>You drove <b>'+dist+' m</b> of '+LV.len+' m and collected <b>'+got+'</b> coins.</p><p style="font-size:13px;opacity:.85">'+(kind==='flip'?'Tip: slow down before ramps and bumps. In the air, GO tilts the nose up and BACK tilts it down.':'Tip: grab every red fuel can, and let go of GO while you\'re flying.')+'</p><button class="main" id="rt">Try again</button><button id="mn">Menu</button>');
+ const nx=$('#nx');if(nx)nx.onclick=()=>startLevel(level+1);$('#rt').onclick=()=>startLevel(level);$('#mn').onclick=menu;}
+function card(h){ov.innerHTML='<div class="card">'+h+'</div>';ov.classList.add('show');}
+function menu(){state='menu';showPlayUI(false);
+ card('<h1>Red Truck<span>FARM RUN</span></h1><img class="hero" src="web/car-full.webp" alt="Red pickup truck"><p>Drive to the farm, grab coins and fuel, and don\'t flip your truck!</p><div class="lv">'+LEVELS.map((l,i)=>'<button data-i="'+i+'" class="'+(i===level?'sel':'')+'" '+(i>=unlocked?'disabled':'')+'>'+(i>=unlocked?'🔒 ':'')+'<b>Level '+(i+1)+'</b><br>'+l.name+'</button>').join('')+'</div><p class="coinrow"><img src="web/coin.webp" alt=""> '+bank+' coins saved</p><button class="main" id="go">DRIVE ▶</button>');
+ ov.querySelectorAll('.lv button').forEach(b=>b.onclick=()=>{level=+b.dataset.i;menu();});$('#go').onclick=()=>startLevel(level);}
+pauseB.onclick=()=>{if(state!=='play')return;state='pause';card('<h2>Paused</h2><button class="main" id="rs">Resume</button><button id="rt">Restart</button> <button id="mn">Menu</button>');
+ $('#rs').onclick=()=>{ov.classList.remove('show');state='play';};$('#rt').onclick=()=>startLevel(level);$('#mn').onclick=menu;};
+function bindPedal(el,k){const on=e=>{e.preventDefault();input[k]=true;el.classList.add('on');try{el.setPointerCapture(e.pointerId);}catch(_){}};const off=()=>{input[k]=false;el.classList.remove('on');};
+ el.addEventListener('pointerdown',on);el.addEventListener('pointerup',off);el.addEventListener('pointercancel',off);el.addEventListener('lostpointercapture',off);}
+bindPedal(fwd,'f');bindPedal(back,'b');
+addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='d')input.f=true;if(e.key==='ArrowLeft'||e.key==='a')input.b=true;});
+addEventListener('keyup',e=>{if(e.key==='ArrowRight'||e.key==='d')input.f=false;if(e.key==='ArrowLeft'||e.key==='a')input.b=false;});
+
+function update(dt){
+ dusts.forEach(d=>{d.t+=dt;d.x+=d.vx*dt;d.y+=d.vy*dt;});dusts=dusts.filter(d=>d.t<d.life);
+ if(state!=='play')return;
+ step(dt);
+ const c=center(),viewW=W/S;
+ camX=Math.max(camX,lerp(camX,c.x-viewW*0.3,Math.min(1,dt*4)));wall=Math.max(wall,camX);
+ camY=lerp(camY,c.y-0.8,Math.min(1,dt*3));
+ // dust from the rear wheel when accelerating, and a big puff on landing
+ const rw=wheels[0];
+ if(rw.g>0&&input.f&&fuel>0&&Math.random()<0.5)dusts.push({x:rw.p.x-0.4,y:rw.p.y-WR*0.6,vx:-1.5-Math.random(),vy:0.6,t:0,life:0.7,s:0.9});
+ if(landed){landed=0;for(let k=0;k<5;k++)dusts.push({x:c.x+(k-2)*0.9,y:ground(c.x)+0.1,vx:(k-2)*1.2,vy:0.8,t:0,life:0.9,s:1.4});}
+ for(const k of coins)if(!k.got&&Math.hypot(k.x-c.x,k.y-c.y-0.4)<1.8){k.got=true;got++;popups.push({x:k.x,y:k.y,t:0,txt:'+1'});}
+ for(const f of fuels)if(!f.got&&Math.hypot(f.x-c.x,f.y-c.y-0.3)<2.1){f.got=true;fuel=Math.min(100,fuel+60);popups.push({x:f.x,y:f.y,t:0,txt:'+FUEL'});}
+ popups.forEach(p=>p.t+=dt);popups=popups.filter(p=>p.t<0.9);
+ if(car.crashed){endT+=dt;if(endT>1.1){endT=0;endGame('flip');}return;}
+ const sp=Math.hypot(car.body[0].x-car.body[0].px,car.body[0].y-car.body[0].py)/(dt/SUB);
+ if(fuel<=0&&sp<0.4){stillT+=dt;if(stillT>1.5)endGame('fuel');}else stillT=0;
+ if(c.x>=LV.len+1)endGame('win');}
+
+/* ---------- drawing ---------- */
+const X=x=>(x-camX)*S,Y=y=>H*(H>W*1.2?0.73:0.56)-(y-camY)*S;
+function img(n,x,y,w,flip,alpha){const i=IMG[n];if(!i||!i.naturalWidth)return;const h=w*i.naturalHeight/i.naturalWidth;ctx.save();if(alpha!=null)ctx.globalAlpha=alpha;ctx.translate(x,y);if(flip)ctx.scale(-1,1);ctx.drawImage(i,-w/2,-h,w,h);ctx.restore();}
+function imgH(n,x,y,h,flip,alpha){const i=IMG[n];if(!i||!i.naturalWidth)return;img(n,x,y,h*i.naturalWidth/i.naturalHeight,flip,alpha);}
+function tileLayer(n,f,bottom,tw){const i=IMG[n];const th=tw*i.naturalHeight/i.naturalWidth,off=((camX*S*f)%(tw*2)+tw*2)%(tw*2);
+ for(let k=-1;k*tw-off<W+tw;k++){const x=k*tw-off;ctx.save();if(k%2){ctx.translate(x+tw,bottom-th);ctx.scale(-1,1);ctx.drawImage(i,0,0,tw+1,th);}else ctx.drawImage(i,x,bottom-th,tw+1,th);ctx.restore();}
+ return th;}
+function drawBackground(t){
+ const sky=IMG.sky,sc=Math.max(W/sky.naturalWidth,H*0.8/sky.naturalHeight),sw=sky.naturalWidth*sc,sx=-((camX*S*0.02)%(sw-W>0?sw-W:1));ctx.drawImage(sky,Math.min(0,sx),0,sw,sky.naturalHeight*sc);
+ if(sw<W*1.01){ctx.fillStyle='#4fb3f5';ctx.fillRect(sw,0,W-sw,H);}
+ const base=Y(0)-S*0.7,tw=Math.max(W*1.1,820);
+ const farB=base-H*0.07;tileLayer('far-hills',0.05,farB,tw);ctx.fillStyle='#6fb33a';ctx.fillRect(0,farB-1,W,H);
+ const midB=base+S*0.1,thm=tileLayer('mid-fields',0.25,midB,tw*0.9);ctx.fillStyle='#5aa531';ctx.fillRect(0,midB-1,W,H);
+ drawFarm(midB-thm*0.74,base);
+ tileLayer('fence',0.85,base+S*0.1,S*7.5);
+ // farm life standing by the roadside
+ for(const d of decor){if(d.road)continue;const sx=(d.x-camX*0.97)*S;if(sx<-S*6||sx>W+S*6)continue;imgH(d.k,sx,base+S*0.12-d.z*S*0.22,d.h*S*0.95,d.flip);}}
+function drawForeground(){
+ // big flowers and hay below the road, moving a little faster for depth
+ const f=1.25,y0=Y(0)+S*0.45;
+ for(const d of decor){if(d.road||!(d.k==='sunflowers'||d.k==='haybale'||d.k==='chicken'))continue;const sx=(d.x*1.3+7-camX*f)*S;if(sx<-S*6||sx>W+S*6)continue;imgH(d.k,sx,y0+S*(1.6+d.z*0.8),d.h*S*1.15,!d.flip);}}
+function drawFarm(farY,base){
+ // destination farm: tiny on the horizon at the start, full size behind the gate at the end
+ const c=car?center():{x:0};const p=clamp(c.x/LV.len,0,1),e=p*p*p;
+ const sc=lerp(0.14,1,e),gx=X(LV.len),sx=Math.min(W*0.72,gx+S*5*sc),by=lerp(farY,base+S*0.05,e);
+ const U=S*sc;
+ imgH('silo',sx+U*6.2,by+U*0.3,U*6.5);
+ const tx=sx-U*6.4,tb=by+U*0.6;
+ imgH('windmill-tower',tx,tb,U*7.5);
+ const bl=IMG['windmill-blades'];if(bl.naturalWidth){ctx.save();ctx.translate(tx+U*0.97,tb-U*7.2);ctx.rotate(performance.now()/700);const bs=U*3.6;ctx.drawImage(bl,-bs/2,-bs/2,bs,bs);ctx.restore();}
+ imgH('barn',sx+U*1.6,by+U*0.2,U*6.2);
+ imgH('farmhouse',sx-U*3.4,by+U*0.3,U*5.4);
+ // the farm's own little fence hides the bottoms of the buildings
+ const fi=IMG.fence;if(fi.naturalWidth){const fw=U*6,fh=fw*fi.naturalHeight/fi.naturalWidth;for(let k=0;k<4;k++)ctx.drawImage(fi,sx-U*10.5+k*fw,by+U*0.75-fh,fw+1,fh);}}
+function drawRoad(){
+ const rd=IMG.road,step=6,bh=S*1.15,top=-S*0.72,tw=bh*rd.naturalWidth/rd.naturalHeight;
+ // grass/dirt under the road
+ ctx.fillStyle='#4e9a2c';ctx.beginPath();ctx.moveTo(0,H);for(let sx=0;sx<=W+step;sx+=step){ctx.lineTo(sx,Y(ground(camX+sx/S))+S*0.3);}ctx.lineTo(W,H);ctx.fill();
+ const gg=ctx.createLinearGradient(0,Y(0)+S*0.3,0,H);gg.addColorStop(0,'#6b4423');gg.addColorStop(0.12,'#4e9a2c');ctx.fillStyle=gg;ctx.fillRect(0,Y(0)+S*0.3,W,H);
+ // road texture, sliced so it follows bumps and ramps
+ for(let sx=0;sx<W+step;sx+=step){const wx=camX+sx/S,gy=Y(ground(wx));const u=((wx*S)%tw+tw)%tw/tw*rd.naturalWidth;const sw=step/tw*rd.naturalWidth;
+  ctx.drawImage(rd,Math.min(u,rd.naturalWidth-sw-1),0,sw,rd.naturalHeight,sx,gy+top,step+0.6,bh);}
+ // obstacles on the road
+ for(const f of feats){
+  if(f.t==='ramp'){const x0=X(f.x0),x2=X(f.x0+f.L+f.drop);if(x2<-50||x0>W+50)continue;const r=IMG.ramp,w=(f.L+f.drop*0.35)*S,hh=f.h*S*1.12;ctx.drawImage(r,x0,Y(0)-hh+S*0.06,w,hh+S*0.1);continue;}
+  const x=X(f.c);if(x<-S*3||x>W+S*3)continue;
+  if(f.t==='bump')img('speedbreaker',x,Y(0)+S*0.12,f.w*S*1.25);
+  else if(f.t==='log')img('log',x,Y(0)+S*0.08,f.w*S*1.7);
+  else if(f.t==='hay')img('haybale',x,Y(0)+S*0.1,f.w*S*1.3);
+  else if(f.t==='barrier')img('barrier',x,Y(0)+S*0.12,f.w*S*1.15);
+  else if(f.t==='pot')img('pothole',x,Y(0)+S*0.28,f.w*S*1.3);
+  else if(f.t==='puddle')img('puddle',x,Y(0)+S*0.3,f.w*S*1.05);}
+ for(const d of decor)if(d.road){const x=X(d.x);if(x>-50&&x<W+50)imgH('cone',x,Y(0)-S*0.25,S*0.8);}
+ // farm gate at the finish, with the farmer and dog waiting
+ const gx=X(LV.len);if(gx>-S*6&&gx<W+S*6){imgH('dog',gx-S*4.2,Y(0)-S*0.45,S*1.1);imgH('farmer',gx+S*4,Y(0)-S*0.5,S*1.9,true);
+  const gw=S*6.2,gi=IMG['farm-gate'],gh=gw*gi.naturalHeight/gi.naturalWidth;ctx.drawImage(gi,gx-gw/2,Y(0)-gh+S*0.15,gw,gh);
+  ctx.fillStyle='#5e2f12';ctx.font='900 '+Math.round(S*0.62)+'px system-ui';ctx.textAlign='center';ctx.fillText('THE FARM',gx,Y(0)-gh*0.72+S*0.15);}}
+function drawPickups(t){
+ for(const k of coins){if(k.got)continue;const x=X(k.x),y=Y(k.y);if(x<-30||x>W+30)continue;const r=S*0.36,sq=Math.max(0.15,Math.abs(Math.cos(t*3+k.x)));ctx.save();ctx.translate(x,y);ctx.scale(sq,1);ctx.drawImage(IMG.coin,-r,-r,r*2,r*2);ctx.restore();}
+ for(const f of fuels){if(f.got)continue;const x=X(f.x),y=Y(f.y)+Math.sin(t*3)*3;if(x<-40||x>W+40)continue;img('fuel-can',x,y+S*0.4,S*0.85);}
+ for(const p of popups){ctx.globalAlpha=1-p.t/0.9;ctx.fillStyle=p.txt==='+FUEL'?'#ff5252':'#ffe066';ctx.font='900 '+Math.round(S*0.55)+'px system-ui';ctx.textAlign='center';ctx.strokeStyle='#3b1f0e';ctx.lineWidth=4;const x=X(p.x),y=Y(p.y)-p.t*S*1.6;ctx.strokeText(p.txt,x,y);ctx.fillText(p.txt,x,y);ctx.globalAlpha=1;}}
+function drawDust(){const d0=IMG.dust;if(!d0.naturalWidth)return;for(const d of dusts){const a=1-d.t/d.life,w=S*d.s*(1+d.t*1.5);ctx.globalAlpha=a*0.75;ctx.drawImage(d0,X(d.x)-w/2,Y(d.y)-w*0.4,w,w*d0.naturalHeight/d0.naturalWidth);}ctx.globalAlpha=1;}
+function drawTruck(){
+ const b0=car.body[0],a=angle(),k=S/PXM;
+ // body frame origin = midpoint between the wheels at rest
+ const ca=Math.cos(a),sa=Math.sin(a),lx=BODY[0][0],ly=BODY[0][1];
+ const ox=b0.x-(lx*ca-ly*sa),oy=b0.y-(lx*sa+ly*ca);
+ const wi=IMG['car-wheel'];
+ for(const w of wheels){const x=X(w.p.x),y=Y(w.p.y),r=WR*S*1.02;ctx.save();ctx.translate(x,y);ctx.rotate(-w.a);ctx.drawImage(wi,-r,-r,r*2,r*2);ctx.restore();}
+ ctx.save();ctx.translate(X(ox),Y(oy));ctx.rotate(-a);ctx.drawImage(IMG['car-body'],-ORX*k,-ORY*k,1536*k,1024*k);ctx.restore();
+ if(car.crashed){ctx.font='900 '+Math.round(S*1.1)+'px system-ui';ctx.textAlign='center';ctx.fillText('💥',X(car.head.x),Y(car.head.y));}}
+function drawHUD(){
+ $('#coins').textContent=got;$('#fuelBar i').style.width=fuel+'%';$('#fuelBar').classList.toggle('low',fuel<20);
+ const p=clamp(center().x/LV.len,0,1);$('#prog i').style.width=(p*100)+'%';$('#prog b').style.left=(p*100)+'%';
+ $('#distTxt').textContent=Math.max(0,Math.round(LV.len-center().x))+' m to the farm'+(fuel<=0?' · OUT OF FUEL':'');}
+let last=performance.now(),T=0;
+function frame(now){const dt=Math.min(0.033,(now-last)/1000);last=now;T+=dt;
+ update(dt);
+ if(state!=='load'&&LV){drawBackground(T);drawRoad();drawForeground();drawPickups(T);drawDust();if(car)drawTruck();if(state==='play'||state==='pause')drawHUD();}
+ requestAnimationFrame(frame);}
+ready.then(()=>{$('#loading').remove();buildLevel(0);makeCar(5);camX=0;menu();});
+requestAnimationFrame(frame);
+window.__rt={update,get st(){return state},get S(){return {fuel,got,car,center:center(),angle:angle(),LV,wheels}},input,startLevel};
+}
+</script>
+</body>
+</html>
