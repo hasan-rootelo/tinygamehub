@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Ludo · Tiny Game Hub</title>
+<meta name="description" content="Play Ludo free against the computer or with friends on one phone. Roll the dice and race your 4 tokens home!">
+<link rel="icon" href="/img/icon-192.png">
+<meta name="theme-color" content="#2a1660">
+<style>
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { margin:0; width:100%; height:100%; overflow:hidden; color:#fff; font-family:system-ui, -apple-system, 'Segoe UI', sans-serif; user-select:none; -webkit-user-select:none; touch-action:none; }
+body { background:#2a1660 radial-gradient(ellipse at 50% 30%, #5b33c9 0%, #3a1d8f 45%, #1d0f4f 100%); }
+body.hasbg { background:#2a1660 url(art/bg.webp) center/cover no-repeat; }
+#cv { position:fixed; inset:0; width:100%; height:100%; display:block; }
+.screen { position:fixed; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px; padding-top:max(20px, env(safe-area-inset-top)); background:radial-gradient(ellipse at 50% 30%, rgba(91,51,201,.92), rgba(29,15,79,.97)); z-index:5; overflow:auto; }
+.screen.show { display:flex; }
+h1 { margin:0 0 6px; font-size:clamp(48px, 14vw, 84px); font-weight:900; letter-spacing:2px; line-height:1;
+  background:linear-gradient(#fff6c2, #ffcf3a 55%, #ff9a1a); -webkit-background-clip:text; background-clip:text; color:transparent; filter:drop-shadow(0 4px 0 #7a3b00); }
+h2 { margin:6px 0 4px; font-size:15px; font-weight:800; opacity:.85; text-transform:uppercase; letter-spacing:1px; }
+.btn { border:0; border-radius:18px; font-weight:900; font-size:21px; padding:14px 34px; margin:7px; cursor:pointer; color:#fff;
+  background:linear-gradient(#5ef08a, #19b84a); box-shadow:0 5px 0 #0c7a2e, 0 8px 18px rgba(0,0,0,.3); font-family:inherit; }
+.btn:active { transform:translateY(3px); box-shadow:0 2px 0 #0c7a2e; }
+.btn.alt { background:linear-gradient(#ffe066, #f5b316); color:#4a2c00; box-shadow:0 5px 0 #a86f00; font-size:17px; padding:11px 26px; }
+.btn.blue { background:linear-gradient(#6fb2ff, #1f6ff0); box-shadow:0 5px 0 #0d47a8; font-size:17px; padding:11px 22px; }
+.row { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin:4px 0 10px; }
+.opt { border:3px solid transparent; border-radius:16px; padding:10px 14px; font-weight:800; font-size:16px; background:rgba(255,255,255,.13); color:#fff; cursor:pointer; font-family:inherit; min-width:92px; }
+.opt.on { border-color:#ffd23a; background:rgba(255,210,58,.22); }
+.opt small { display:block; font-weight:600; font-size:12px; opacity:.8; margin-top:2px; }
+.dot { width:50px; height:50px; border-radius:50%; border:4px solid rgba(255,255,255,.35); cursor:pointer; padding:0; }
+.dot.on { border-color:#fff; box-shadow:0 0 0 4px #ffd23a; }
+#title { background:#3a1d8f url(art/title.webp) center bottom/cover no-repeat; justify-content:flex-start; padding-top:max(9vh, env(safe-area-inset-top)); }
+#title .art { display:none; }
+#title p { text-shadow:0 2px 6px rgba(0,0,0,.5); }
+@media (orientation:landscape) { #title { background:url(art/title.webp) center/contain no-repeat, #3a1d8f url(art/bg.webp) center/cover no-repeat; } }
+#title p { opacity:.85; margin:2px 0 14px; }
+#topbar { position:fixed; top:max(8px, env(safe-area-inset-top)); left:8px; right:8px; display:none; justify-content:space-between; z-index:3; pointer-events:none; }
+#topbar button { pointer-events:auto; width:42px; height:42px; border-radius:14px; border:0; background:rgba(0,0,0,.35); color:#fff; font-size:20px; cursor:pointer; }
+body[data-s="play"] #topbar { display:flex; }
+#winList { margin:6px 0 10px; min-width:240px; }
+#winList div { display:flex; align-items:center; gap:10px; background:rgba(255,255,255,.1); border-radius:14px; padding:8px 12px; margin:6px 0; font-weight:800; font-size:17px; }
+#winList span.c { width:22px; height:22px; border-radius:50%; flex:none; }
+#trophy { font-size:84px; line-height:1; height:110px; }
+#trophy img { height:110px; }
+#menu .btn { min-width:220px; }
+</style>
+</head>
+<body data-s="title">
+<canvas id="cv"></canvas>
+<div id="topbar"><button id="bMenu" aria-label="Menu">☰</button><span><button id="bView" aria-label="Change view" style="font-size:14px;font-weight:900">2D</button> <button id="bSound" aria-label="Sound">🔊</button></span></div>
+
+<div class="screen show" id="title">
+  <h1>LUDO</h1>
+  <canvas class="art" id="titleArt" width="600" height="600"></canvas>
+  <p>Roll the dice, race your 4 tokens home!</p>
+  <button class="btn" id="bPlay">PLAY ▶</button>
+  <button class="btn alt" id="bContinue" style="display:none">Continue game</button>
+</div>
+
+<div class="screen" id="setup">
+  <h2>Who do you play?</h2>
+  <div class="row" id="modeRow">
+    <button class="opt on" data-m="cpu1">🤖 1 Computer<small>2 players</small></button>
+    <button class="opt" data-m="cpu3">🤖🤖🤖 3 Computers<small>4 players</small></button>
+    <button class="opt" data-m="pass">📱 Pass &amp; Play<small>friends on this phone</small></button>
+  </div>
+  <div id="passRow" style="display:none"><h2>How many players?</h2>
+    <div class="row"><button class="opt" data-n="2">2</button><button class="opt on" data-n="3">3</button><button class="opt" data-n="4">4</button></div></div>
+  <div id="colorBox"><h2>Your colour</h2>
+    <div class="row" id="colorRow"></div></div>
+  <div id="levelBox"><h2>Computer level</h2>
+    <div class="row" id="levelRow"><button class="opt" data-l="0">Easy</button><button class="opt on" data-l="1">Normal</button><button class="opt" data-l="2">Hard</button></div></div>
+  <button class="btn" id="bStart">START ▶</button>
+  <button class="btn alt" id="bBack">Back</button>
+</div>
+
+<div class="screen" id="menu">
+  <h2>Paused</h2>
+  <button class="btn" id="bResume">Resume ▶</button>
+  <h2 style="margin-top:14px">Sounds</h2>
+  <div class="row" id="soundRow"></div>
+  <button class="btn blue" id="bRestart">New game</button>
+  <button class="btn alt" id="bHome">Main menu</button>
+</div>
+
+<div class="screen" id="win">
+  <div id="trophy">🏆</div>
+  <h1 id="winTitle" style="font-size:44px">YOU WIN!</h1>
+  <div id="winList"></div>
+  <button class="btn" id="bAgain">Play again</button>
+  <button class="btn alt" id="bWinHome">Main menu</button>
+</div>
+
+<script src="sounds.js"></script>
+<script>
+'use strict';
+/* =====================================================================
+   LUDO — rules engine first (no drawing in here), so online play can be
+   added later by plugging in an "online" seat type.
+   ===================================================================== */
+const ORDER = ['r', 'g', 'y', 'b'];                       // turn order, clockwise from top-left
+const NAME = { r: 'Red', g: 'Green', y: 'Yellow', b: 'Blue' };
+const HEX = { r: ['#ff6b78', '#e0142b', '#9c0b1d'], g: ['#6ee894', '#13a83c', '#0a6b25'], y: ['#ffe680', '#ffc107', '#c98a00'], b: ['#7ab3ff', '#1565f0', '#0a3f9e'] };
+const START = { r: 0, g: 13, y: 26, b: 39 };                // where each colour enters the track
+const SAFE = new Set([0, 8, 13, 21, 26, 34, 39, 47]);       // start squares + star squares
+const HOME = 56;                                            // 0..50 track, 51..55 home lane, 56 = finished
+
+// the 52 track squares as [row, col] on the 15x15 grid, starting at red's start square
+const TRACK = (() => {
+  const t = [], seg = (r0, c0, dr, dc, n) => { for (let i = 0; i < n; i++) t.push([r0 + dr * i, c0 + dc * i]); };
+  seg(6, 1, 0, 1, 5); seg(5, 6, -1, 0, 6); t.push([0, 7]); seg(0, 8, 1, 0, 6);
+  seg(6, 9, 0, 1, 6); t.push([7, 14]); seg(8, 14, 0, -1, 6);
+  seg(9, 8, 1, 0, 6); t.push([14, 7]); seg(14, 6, -1, 0, 6);
+  seg(8, 5, 0, -1, 6); t.push([7, 0]); t.push([6, 0]);
+  return t;
+})();
+const LANE = {
+  r: [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5]], g: [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7]],
+  y: [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9]], b: [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7]]
+};
+const trackIdx = (col, p) => (START[col] + p) % 52;         // track square of a token at progress p (0..50)
+
+function newGame(seats) {
+  return { seats, tok: { r: [-1, -1, -1, -1], g: [-1, -1, -1, -1], y: [-1, -1, -1, -1], b: [-1, -1, -1, -1] },
+    turn: seats.findIndex(s => s.type !== 'off'), dice: 6, sixes: 0, rank: [], over: false, moves: 0 };
+}
+const seatOf = (G, col) => G.seats[ORDER.indexOf(col)];
+const curCol = G => ORDER[G.turn];
+function legal(G, col, d) {
+  const out = [];
+  G.tok[col].forEach((p, i) => { if (p === -1) { if (d === 6) out.push(i); } else if (p < HOME && p + d <= HOME) out.push(i); });
+  return out;
+}
+// who would be knocked home if `col` lands on progress np
+function victims(G, col, np) {
+  if (np > 50) return [];
+  const sq = trackIdx(col, np); if (SAFE.has(sq)) return [];
+  const v = [];
+  for (const c of ORDER) { if (c === col || seatOf(G, c).type === 'off') continue;
+    G.tok[c].forEach((p, i) => { if (p >= 0 && p <= 50 && trackIdx(c, p) === sq) v.push([c, i]); }); }
+  return v;
+}
+// apply a move; returns what happened (the caller animates it)
+function applyMove(G, col, i, d) {
+  const from = G.tok[col][i], to = from === -1 ? 0 : from + d;
+  const caught = victims(G, col, to);
+  G.tok[col][i] = to;
+  for (const [c, j] of caught) G.tok[c][j] = -1;
+  const home = to === HOME, done = G.tok[col].every(p => p === HOME);
+  if (done && !G.rank.includes(col)) G.rank.push(col);
+  G.moves++;
+  return { col, i, from, to, caught, home, done, extra: (d === 6 || caught.length > 0 || home) && !done };
+}
+function activeCols(G) { return ORDER.filter(c => seatOf(G, c).type !== 'off'); }
+function nextTurn(G) {
+  G.sixes = 0;
+  for (let k = 1; k <= 4; k++) { const t = (G.turn + k) % 4, c = ORDER[t]; if (seatOf(G, c).type !== 'off' && !G.rank.includes(c)) { G.turn = t; return; } }
+}
+function checkOver(G) {
+  const left = activeCols(G).filter(c => !G.rank.includes(c));
+  const humansLeft = left.filter(c => seatOf(G, c).type === 'human');
+  const humans = activeCols(G).filter(c => seatOf(G, c).type === 'human');
+  // game ends when only one player is left, or (vs computer) as soon as you finish
+  if (left.length <= 1 || (humans.length === 1 && humansLeft.length === 0) || (humans.length > 1 && humansLeft.length === 0)) {
+    // rank the rest by how far they got
+    left.sort((a, b) => G.tok[b].reduce((s, p) => s + p + 1, 0) - G.tok[a].reduce((s, p) => s + p + 1, 0)).forEach(c => G.rank.push(c));
+    G.over = true;
+  }
+  return G.over;
+}
+
+/* ---------------- computer player */
+function danger(G, col, np) {                 // how many enemy tokens could land on this square next roll
+  if (np > 50) return 0;
+  const sq = trackIdx(col, np); if (SAFE.has(sq)) return 0;
+  let n = 0;
+  for (const c of activeCols(G)) { if (c === col) continue;
+    for (const p of G.tok[c]) {
+      if (p >= 0 && p <= 50) { const q = trackIdx(c, p), dist = (sq - q + 52) % 52; if (dist >= 1 && dist <= 6 && p + dist <= 50) n++; }
+      else if (p === -1 && sq === START[c]) n += .5;
+    } }
+  return n;
+}
+function cpuPick(G, col, d, level) {
+  const opts = legal(G, col, d); if (opts.length <= 1) return opts[0];
+  if (level === 0 && Math.random() < .5) return opts[Math.random() * opts.length | 0];
+  let best = opts[0], bs = -1e9;
+  for (const i of opts) {
+    const p = G.tok[col][i], np = p === -1 ? 0 : p + d; let s = 0;
+    if (np === HOME) s += 120;
+    s += victims(G, col, np).length * (level === 2 ? 110 : 80);
+    if (p === -1) s += 60;
+    if (np > 50 && p <= 50) s += 45;                                     // into the safe home lane
+    if (np <= 50 && SAFE.has(trackIdx(col, np))) s += 25;
+    s -= danger(G, col, np) * (level === 2 ? 45 : 25);
+    if (p >= 0) s += danger(G, col, p) * (level === 2 ? 40 : 20);       // escaping from danger
+    s += np * (level === 2 ? .6 : .3);
+    s += (Math.random() - .5) * [70, 20, 4][level];
+    if (s > bs) { bs = s; best = i; }
+  }
+  return best;
+}
+
+/* =====================================================================
+   PRESENTATION
+   ===================================================================== */
+const $ = q => document.querySelector(q), cv = $('#cv'), mainCx = cv.getContext('2d');
+let cx = mainCx;
+const FAST = /[?&]fast\b/.test(location.search);
+const SAVE_KEY = 'ludo:v1';
+let pref = { mode: 'cpu1', n: 3, color: 'b', level: 1, sound: true, view: '3d', sset: 'playful' };
+try { Object.assign(pref, JSON.parse(localStorage.getItem(SAVE_KEY + ':pref') || '{}')); } catch (e) { }
+const savePref = () => { try { localStorage.setItem(SAVE_KEY + ':pref', JSON.stringify(pref)); } catch (e) { } };
+
+const IMG = {}; let ART = {};
+function loadImg(n, src) { const im = new Image(); im.onload = () => { ART[n] = true; if (n === 'bg') document.body.classList.add('hasbg'); if (n === 'board') buildBoard(); }; im.src = src; IMG[n] = im; }
+loadImg('board', 'art/board.svg');
+loadImg('bg', 'art/bg.webp');
+['avatar1', 'avatar2', 'avatar3', 'avatar4', 'trophy'].forEach(n => loadImg(n, 'art/' + n + '.webp'));
+
+const AVATARS = [{ name: 'You', emoji: '🧒', img: 'avatar1' }, { name: 'Zara', emoji: '👧', img: 'avatar2' }, { name: 'Grandpa Joe', emoji: '👴', img: 'avatar3' }, { name: 'Robo', emoji: '🤖', img: 'avatar4' }];
+
+/* ---------------- layout + table view (perspective) */
+// Board points are (u, v) from 0 to 1. The board turns so YOUR colour is always the near-left corner.
+// Table view: a camera looking down at about 55 degrees, like sitting at a table.
+const PHI = .96, DCAM = 3.3, CS = Math.cos(PHI), SN = Math.sin(PHI);
+let W = 0, H = 0, DPR = 1, ROT = 0, VIEW3D = true, F = 1, OX = 0, OY = 0, BXb = 0, BYb = 0, BWb = 0, BHb = 0, PANEL = {};
+const flatBoard = document.createElement('canvas'), viewBoard = document.createElement('canvas');
+function rotUV(u, v) { for (let k = 0; k < ROT; k++) { const t = u; u = 1 - v; v = t; } return [u, v]; }
+const pz = z => DCAM - z * CS;                          // depth of a board row
+function P(u, v) {                                      // board point -> screen point + local scale
+  [u, v] = rotUV(u, v);
+  if (!VIEW3D) return { x: OX + u * F, y: OY + v * F, k: F };
+  const x = 2 * u - 1, z = 2 * v - 1, d = pz(z);
+  return { x: OX + F * x / d, y: OY + F * (z * SN / d + SN / (DCAM + CS)), k: 2 * F / d };
+}
+const CELLU = 60 / 972, PADU = 36 / 972;
+const cellUV = (r, c) => [PADU + (c + .5) * CELLU, PADU + (r + .5) * CELLU];
+function cornerOf(col) { return ['TL', 'TR', 'BR', 'BL'][(ORDER.indexOf(col) + ROT) % 4]; }
+function resize() {
+  DPR = Math.min(2.5, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight;
+  cv.width = W * DPR; cv.height = H * DPR; mainCx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const portrait = H >= W * 1.15, ph = 78, pw = 150;
+  // space the board may use
+  let ax, ay, aw, ah;
+  if (portrait) { aw = W - 12; ah = H - 2 * ph - 96; ax = 6; ay = ph + 52; }
+  else { aw = W - 2 * pw - 40; ah = H - 64; ax = pw + 20; ay = 52; }
+  if (VIEW3D) {
+    const w0 = 2 / pz(1), h0 = SN / pz(1) + SN / (DCAM + CS) + .03;   // + board edge
+    F = Math.min(aw / w0, ah / h0);
+    BWb = w0 * F; BHb = h0 * F; BXb = ax + (aw - BWb) / 2; BYb = ay + (ah - BHb) / 2;
+    OX = BXb + BWb / 2; OY = BYb;
+  } else {
+    F = Math.min(aw, ah); BWb = BHb = F; BXb = ax + (aw - F) / 2; BYb = ay + (ah - F) / 2; OX = BXb; OY = BYb;
+  }
+  const at = {};
+  if (portrait) {
+    const hw = Math.min(BWb, W - 12) / 2 - 4, L = W / 2 - hw - 4, R = W / 2 + 4, top = BYb - ph - 8, bot = BYb + BHb + 8;
+    at.TL = { x: L, y: top, w: hw, h: ph, flip: false }; at.TR = { x: R, y: top, w: hw, h: ph, flip: true };
+    at.BL = { x: L, y: bot, w: hw, h: ph, flip: false }; at.BR = { x: R, y: bot, w: hw, h: ph, flip: true };
+  } else {
+    const lx = BXb - pw - 10, rx = BXb + BWb + 10;
+    at.TL = { x: lx, y: BYb, w: pw, h: ph, flip: false, col: true }; at.BL = { x: lx, y: BYb + BHb - ph * 1.6, w: pw, h: ph, flip: false, col: true };
+    at.TR = { x: rx, y: BYb, w: pw, h: ph, flip: true, col: true }; at.BR = { x: rx, y: BYb + BHb - ph * 1.6, w: pw, h: ph, flip: true, col: true };
+  }
+  PANEL = {}; ORDER.forEach(c => PANEL[c] = at[cornerOf(c)]);
+  buildBoard();
+}
+addEventListener('resize', resize);
+// draw the board picture once (turned, and tilted for table view) so each frame is cheap
+function buildBoard() {
+  if (!ART.board) return;
+  const N = 1024; flatBoard.width = flatBoard.height = N;
+  const f = flatBoard.getContext('2d'); f.clearRect(0, 0, N, N);
+  f.save(); f.translate(N / 2, N / 2); f.rotate(ROT * Math.PI / 2); f.drawImage(IMG.board, -N / 2, -N / 2, N, N); f.restore();
+  if (!VIEW3D) return;
+  viewBoard.width = Math.ceil(BWb * DPR); viewBoard.height = Math.ceil(BHb * DPR);
+  const g = viewBoard.getContext('2d'); g.setTransform(DPR, 0, 0, DPR, 0, 0); g.imageSmoothingQuality = 'high';
+  // thick board edge on the near side
+  const nl = P0(-1, 1), nr = P0(1, 1), edge = F * .028;
+  const eg = g.createLinearGradient(0, nl.y, 0, nl.y + edge); eg.addColorStop(0, '#2a2e36'); eg.addColorStop(1, '#050506');
+  g.fillStyle = eg; g.beginPath(); g.moveTo(nl.x, nl.y - 2); g.lineTo(nr.x, nr.y - 2); g.lineTo(nr.x, nr.y + edge); g.lineTo(nl.x, nl.y + edge); g.closePath(); g.fill();
+  // the tilted top: one thin slice per screen row
+  const yTop = P0(0, -1).y, yBot = nl.y, rows = Math.ceil((yBot - yTop) * DPR);
+  for (let k = 0; k < rows; k++) {
+    const ys = yTop + (k + .5) / DPR, Y = (ys) / F - SN / (DCAM + CS);            // screen row -> board row
+    const z = Y * DCAM / (SN + Y * CS), d = pz(z), v = (z + 1) / 2;
+    if (v < 0 || v > 1) continue;
+    const half = F / d, sy = Math.min(N - 1, Math.max(0, v * N));
+    g.drawImage(flatBoard, 0, sy, N, 1, BWb / 2 - half, yTop + k / DPR, half * 2, 1 / DPR + .6 / DPR);
+  }
+}
+function P0(x, z) { const d = pz(z); return { x: BWb / 2 + F * x / d, y: F * (z * SN / d + SN / (DCAM + CS)) }; }  // board-canvas coords
+const cell = (r, c) => P(...cellUV(r, c));
+function yardSpot(col, i) {
+  const [r, c] = { r: [0, 0], g: [0, 9], y: [9, 9], b: [9, 0] }[col];
+  const px = PADU + (c + 1.05) * CELLU, py = PADU + (r + 1.05) * CELLU, pw = 3.9 * CELLU;
+  return P(px + pw * (.29 + .42 * (i % 2)), py + pw * (.29 + .42 * (i >> 1)));
+}
+function homeSpot(col, i) {
+  const [u0, v0] = cellUV(7, 7), o = CELLU * .78, d = { r: [-1, 0], g: [0, -1], y: [1, 0], b: [0, 1] }[col], side = (i - 1.5) * CELLU * .32;
+  return P(u0 + d[0] * o + (d[1] ? side : 0), v0 + d[1] * o + (d[0] ? side : 0));
+}
+function spot(col, i, p) {
+  if (p === -1) return yardSpot(col, i);
+  if (p === HOME) return homeSpot(col, i);
+  if (p > 50) { const [r, c] = LANE[col][p - 51]; return cell(r, c); }
+  const [r, c] = TRACK[trackIdx(col, p)]; return cell(r, c);
+}
+const cellPx = at => at.k * CELLU;     // size of one square at that point on screen
+
+/* ---------------- sound (made in code, see sounds.js); the set is chosen in the menu */
+const snd = ev => { if (pref.sound && window.LudoSound) LudoSound.play(pref.sset || 'playful', ev); };
+const sRattle = () => snd('roll'), sHop = () => snd('step'), sOut = () => snd('out'), sCatch = () => snd('capture'), sHome = () => snd('home'), sWin = () => snd('win');
+
+/* ---------------- game flow */
+let G = null, phase = 'idle', timer = 0, rollAnim = 0, rollShow = 1, anim = null, flyers = [], parts = [], toastT = 0, toastMsg = '', T = 0, pickable = [];
+const speed = FAST ? .25 : 1;
+function seatsFromPref() {
+  const seats = ORDER.map(c => ({ type: 'off', color: c }));
+  const opp = { r: 'y', y: 'r', g: 'b', b: 'g' };
+  if (pref.mode === 'pass') {
+    const n = pref.n, pick = n === 2 ? ['r', 'y'] : n === 3 ? ['r', 'g', 'y'] : ORDER;
+    pick.forEach((c, k) => { seats[ORDER.indexOf(c)] = { type: 'human', color: c, name: 'Player ' + (k + 1), av: k }; });
+  } else {
+    const me = pref.color, cpus = pref.mode === 'cpu1' ? [opp[me]] : ORDER.filter(c => c !== me);
+    seats[ORDER.indexOf(me)] = { type: 'human', color: me, name: 'You', av: 0 };
+    cpus.forEach((c, k) => { const a = AVATARS[k + 1]; seats[ORDER.indexOf(c)] = { type: 'cpu', color: c, name: a.name, av: k + 1, level: pref.level }; });
+  }
+  return seats;
+}
+function startGame(g) {
+  G = g || newGame(seatsFromPref()); anim = null; flyers = []; parts = [];
+  const me = activeCols(G).find(c => seatOf(G, c).type === 'human') || 'b';
+  ROT = activeCols(G).filter(c => seatOf(G, c).type === 'human').length > 1 ? 0 : (3 - ORDER.indexOf(me) + 4) % 4; resize();
+  phase = 'roll'; timer = .6; rollShow = G.dice; show(null); persist();
+  toast(seatOf(G, curCol(G)).type === 'human' ? 'Tap your dice to roll!' : '');
+}
+function persist() { try { if (G && !G.over) localStorage.setItem(SAVE_KEY + ':game', JSON.stringify(G)); else localStorage.removeItem(SAVE_KEY + ':game'); } catch (e) { } }
+function savedGame() { try { return JSON.parse(localStorage.getItem(SAVE_KEY + ':game') || 'null'); } catch (e) { return null; } }
+function toast(m, t = 1.6) { toastMsg = m; toastT = m ? t : 0; }
+
+function doRoll(forced) {
+  if (phase !== 'roll') return;
+  const col = curCol(G);
+  G.dice = forced || (1 + Math.random() * 6 | 0);
+  phase = 'rolling'; rollAnim = .6 * speed; sRattle();
+}
+function afterRoll() {
+  const col = curCol(G), d = G.dice, s = seatOf(G, col);
+  if (d === 6) G.sixes++; else G.sixes = 0;
+  if (G.sixes === 3) { toast('Three 6s in a row – turn lost!'); endTurn(false); return; }
+  pickable = legal(G, col, d);
+  if (!pickable.length) { toast(s.type === 'human' ? 'No moves – next player' : ''); phase = 'wait'; timer = .7 * speed; anim = { pass: true }; return; }
+  // only one choice (or all choices are the same square): move it straight away
+  const same = pickable.every(i => G.tok[col][i] === G.tok[col][pickable[0]]);
+  if (s.type === 'cpu') { phase = 'think'; timer = .45 * speed; }
+  else if (pickable.length === 1 || same) { phase = 'think'; timer = .25 * speed; s._auto = pickable[0]; }
+  else { phase = 'pick'; }
+}
+function choose(i) {
+  const col = curCol(G), d = G.dice;
+  if (!pickable.includes(i)) return;
+  pickable = [];
+  const from = G.tok[col][i], res = applyMove(G, col, i, d);
+  const path = []; if (from === -1) path.push(0); else for (let p = from + 1; p <= res.to; p++) path.push(p);
+  // hide the token's new place until the hop animation reaches it
+  anim = { res, col, i, path, k: 0, t: 0, from };
+  phase = 'moving';
+  if (from === -1) sOut();
+}
+function finishMove() {
+  const { res } = anim; anim = null;
+  if (res.caught.length) {
+    sCatch(); toast(seatOf(G, res.col).name + ' sent ' + res.caught.map(([c]) => NAME[c]).join(' & ') + ' home!');
+    const at = spot(res.col, res.i, res.to); burst(at.x, at.y, HEX[res.col][1], 22);
+    for (const [c, j] of res.caught) flyers.push({ c, j, from: at, t: 0 });
+  }
+  if (res.home) { sHome(); const at = spot(res.col, res.i, HOME); burst(at.x, at.y, '#ffd23a', 26); toast('Token home! Roll again'); }
+  if (res.done) { toast(seatOf(G, res.col).name + ' finished!', 2); }
+  if (checkOver(G)) { persist(); phase = 'over'; timer = 1.2 * speed; return; }
+  endTurn(res.extra);
+}
+function endTurn(extra) {
+  if (!extra) nextTurn(G);
+  phase = 'roll'; timer = (extra ? .35 : .55) * speed; rollShow = G.dice; persist();
+}
+
+/* ---------------- input */
+cv.addEventListener('pointerdown', e => {
+  if (!G || $('.screen.show')) return;
+  const x = e.clientX, y = e.clientY, col = curCol(G), s = seatOf(G, col);
+  if (s.type !== 'human') return;
+  if (phase === 'roll' && timer <= 0) { const d = diceRect(col); if (x > d.x - 14 && x < d.x + d.s + 14 && y > d.y - 14 && y < d.y + d.s + 14) { doRoll(); return; } }
+  if (phase === 'pick') {
+    let best = null, bd = 1e9;
+    for (const i of pickable) { const p = spot(col, i, G.tok[col][i]), dd = Math.hypot(p.x - x, p.y - cellPx(p) * .3 - y); if (dd < bd) { bd = dd; best = i; } }
+    if (best !== null && bd < cellPx(spot(col, best, G.tok[col][best])) * 1.2) choose(best);
+  }
+});
+addEventListener('keydown', e => { if (e.code === 'Space' && G && phase === 'roll' && timer <= 0 && seatOf(G, curCol(G)).type === 'human') doRoll(); });
+
+/* ---------------- update */
+function update(dt) {
+  T += dt; if (toastT > 0) toastT -= dt;
+  for (const p of parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 600 * dt; p.life -= dt; p.rot += p.vr * dt; }
+  parts = parts.filter(p => p.life > 0);
+  for (const f of flyers) f.t += dt / (.55 * speed); flyers = flyers.filter(f => f.t < 1);
+  if (!G) return;
+  if (timer > 0) { timer -= dt; return; }
+  const col = curCol(G), s = seatOf(G, col);
+  if (phase === 'roll' && s.type === 'cpu') doRoll();
+  else if (phase === 'rolling') { rollAnim -= dt; if (rollAnim <= 0) { rollShow = G.dice; afterRoll(); } else if ((T * 14 | 0) % 1 === 0) rollShow = 1 + (Math.random() * 6 | 0); }
+  else if (phase === 'think') { const i = s.type === 'cpu' ? cpuPick(G, col, G.dice, s.level) : s._auto; choose(i); }
+  else if (phase === 'wait' && anim && anim.pass) { anim = null; endTurn(false); }
+  else if (phase === 'moving') {
+    anim.t += dt / ((anim.from === -1 ? .3 : .17) * speed);
+    if (anim.t >= 1) { anim.t = 0; anim.k++; if (anim.from !== -1 || anim.k > 0) sHop(); if (anim.k >= anim.path.length) finishMove(); }
+  }
+  else if (phase === 'over') { phase = 'done'; showWin(); }
+}
+
+/* ---------------- drawing helpers */
+function rrect(x, y, w, h, r) { cx.beginPath(); cx.roundRect ? cx.roundRect(x, y, w, h, r) : cx.rect(x, y, w, h); }
+function drawToken(x, y, s, col, glow) {
+  // glossy flat pin: round head with a point at the bottom, white outline, shine
+  const [l, m, d] = HEX[col], r = s * .36;
+  cx.save(); cx.translate(x, y - s * .28);
+  if (glow) { const a = .5 + .5 * Math.sin(T * 8); cx.beginPath(); cx.arc(0, s * .28, s * (.5 + .08 * a), 0, 7); cx.fillStyle = `rgba(255,255,255,${.25 + .35 * a})`; cx.fill(); }
+  cx.beginPath(); cx.moveTo(0, s * .62);
+  cx.bezierCurveTo(-r * .55, s * .38, -r * 1.12, r * .55, -r * 1.12, 0);
+  cx.arc(0, 0, r * 1.12, Math.PI, 0); cx.bezierCurveTo(r * 1.12, r * .55, r * .55, s * .38, 0, s * .62); cx.closePath();
+  cx.fillStyle = '#fff'; cx.fill();
+  cx.beginPath(); cx.moveTo(0, s * .54);
+  cx.bezierCurveTo(-r * .48, s * .34, -r * .98, r * .5, -r * .98, 0);
+  cx.arc(0, 0, r * .98, Math.PI, 0); cx.bezierCurveTo(r * .98, r * .5, r * .48, s * .34, 0, s * .54); cx.closePath();
+  const g = cx.createLinearGradient(0, -r, 0, s * .55); g.addColorStop(0, l); g.addColorStop(.5, m); g.addColorStop(1, d);
+  cx.fillStyle = g; cx.fill();
+  cx.beginPath(); cx.arc(0, 0, r * .45, 0, 7); cx.fillStyle = '#fff'; cx.fill();
+  cx.beginPath(); cx.arc(0, 0, r * .3, 0, 7); cx.fillStyle = m; cx.fill();
+  cx.beginPath(); cx.ellipse(-r * .38, -r * .5, r * .32, r * .17, -.6, 0, 7); cx.fillStyle = 'rgba(255,255,255,.75)'; cx.fill();
+  cx.restore();
+}
+function drawDie(x, y, s, v, rot, active) {
+  cx.save(); cx.translate(x + s / 2, y + s / 2); cx.rotate(rot);
+  const g = cx.createLinearGradient(0, -s / 2, 0, s / 2); g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#e4e8f0');
+  rrect(-s / 2, -s / 2, s, s, s * .22); cx.fillStyle = g; cx.fill();
+  cx.lineWidth = Math.max(1.5, s * .035); cx.strokeStyle = active ? '#ffd23a' : '#c9cfdb'; cx.stroke();
+  cx.beginPath(); rrect(-s * .4, -s * .42, s * .8, s * .3, s * .14); cx.fillStyle = 'rgba(255,255,255,.9)'; cx.fill();
+  const P = { 1: [[0, 0]], 2: [[-1, -1], [1, 1]], 3: [[-1, -1], [0, 0], [1, 1]], 4: [[-1, -1], [1, -1], [-1, 1], [1, 1]], 5: [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]], 6: [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1]] }[v];
+  for (const [a, b] of P) { cx.beginPath(); cx.arc(a * s * .25, b * s * .25, s * (v === 1 ? .12 : .085), 0, 7); cx.fillStyle = '#e0142b'; cx.fill(); cx.beginPath(); cx.arc(a * s * .25 - s * .025, b * s * .25 - s * .025, s * .03, 0, 7); cx.fillStyle = 'rgba(255,255,255,.6)'; cx.fill(); }
+  cx.restore();
+}
+function diceRect(col) {
+  const P = PANEL[col], s = Math.min(P.h - 18, 58);
+  if (P.col) return { x: P.flip ? P.x + 8 : P.x + P.w - s - 8, y: P.y + P.h - s - 4, s };
+  return { x: P.flip ? P.x + 10 : P.x + P.w - s - 10, y: P.y + (P.h - s) / 2, s };
+}
+function drawPanel(col) {
+  const s = seatOf(G, col), P = PANEL[col]; if (!P || s.type === 'off') return;
+  const active = curCol(G) === col && !G.over, off = s.type === 'off';
+  cx.save(); cx.globalAlpha = off ? .35 : 1;
+  rrect(P.x, P.y, P.w, P.h, 18); cx.fillStyle = active ? 'rgba(255,255,255,.22)' : 'rgba(0,0,0,.28)'; cx.fill();
+  if (active) { cx.lineWidth = 3; cx.strokeStyle = HEX[col][0]; cx.stroke(); }
+  if (off) { cx.restore(); return; }
+  const ar = Math.min(26, P.h * .33), ax = P.flip ? P.x + P.w - ar - 10 : P.x + ar + 10, ay = P.col ? P.y + ar + 6 : P.y + P.h / 2 - 7;
+  const av = AVATARS[s.av] || AVATARS[0];
+  cx.beginPath(); cx.arc(ax, ay, ar + 3, 0, 7); cx.fillStyle = HEX[col][1]; cx.fill();
+  cx.save(); cx.beginPath(); cx.arc(ax, ay, ar, 0, 7); cx.clip();
+  if (ART[av.img]) cx.drawImage(IMG[av.img], ax - ar, ay - ar, ar * 2, ar * 2);
+  else { cx.fillStyle = '#fff'; cx.fillRect(ax - ar, ay - ar, ar * 2, ar * 2); cx.font = `${ar * 1.3}px system-ui`; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(av.emoji, ax, ay + 2); }
+  cx.restore();
+  cx.fillStyle = '#fff'; cx.font = '800 12px system-ui'; cx.textAlign = 'center'; cx.textBaseline = 'alphabetic';
+  cx.fillText(s.name + (G.rank.includes(col) ? ' 🏁' : ''), ax, P.col ? ay + ar + 16 : ay + ar + 15);
+  const d = diceRect(col);
+  if (active || P.col) {
+    const rolling = active && phase === 'rolling', v = active ? rollShow : 6;
+    const bounce = active && phase === 'roll' && s.type === 'human' && timer <= 0 ? Math.abs(Math.sin(T * 5)) * 5 : 0;
+    cx.globalAlpha = active ? 1 : .35;
+    drawDie(d.x, d.y - bounce, d.s, v, rolling ? Math.sin(T * 40) * .5 : 0, active && phase === 'roll' && s.type === 'human');
+    if (active && phase === 'roll' && s.type === 'human' && timer <= 0) { cx.fillStyle = '#ffd23a'; cx.font = '900 11px system-ui'; cx.fillText('TAP', d.x + d.s / 2, d.y + d.s + 11); }
+  }
+  cx.restore();
+}
+function burst(x, y, c, n) { for (let k = 0; k < n; k++) { const a = Math.random() * 7, v = 120 + Math.random() * 260; parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 200, life: .7 + Math.random() * .5, c: Math.random() < .3 ? '#fff' : c, s: 3 + Math.random() * 4, rot: 0, vr: 0, star: Math.random() < .5 }); } }
+function confetti() { for (let k = 0; k < 140; k++) parts.push({ x: Math.random() * W, y: -20 - Math.random() * H * .5, vx: (Math.random() - .5) * 120, vy: 60 + Math.random() * 120, life: 4 + Math.random() * 2, c: ['#ff4d5e', '#4fe07a', '#ffd23a', '#4f9bff', '#fff'][k % 5], s: 5 + Math.random() * 5, rot: Math.random() * 7, vr: (Math.random() - .5) * 10, rect: true }); }
+function star(x, y, r) { cx.beginPath(); for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? r * .45 : r; cx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } cx.closePath(); cx.fill(); }
+
+/* ---------------- main draw */
+function draw() {
+  cx.clearRect(0, 0, W, H);
+  if (!G) { drawParts(); return; }
+  if (ART.board) { if (VIEW3D) cx.drawImage(viewBoard, BXb, BYb, BWb, BHb); else cx.drawImage(flatBoard, BXb, BYb, BWb, BHb); }
+  ORDER.forEach(drawPanel);
+  // tokens: group by square so stacked tokens sit side by side
+  const groups = new Map(), col = curCol(G);
+  for (const c of ORDER) {
+    if (seatOf(G, c).type === 'off') continue;
+    G.tok[c].forEach((p, i) => {
+      if (anim && anim.col === c && anim.i === i) return;
+      if (flyers.some(f => f.c === c && f.j === i)) return;
+      const key = p === -1 ? 'y' + c + i : p === HOME ? 'h' + c + i : p > 50 ? 'l' + c + p : 't' + trackIdx(c, p);
+      if (!groups.has(key)) groups.set(key, []); groups.get(key).push([c, i, p]);
+    });
+  }
+  const list = [];
+  for (const g of groups.values()) g.forEach(([c, i, p], k) => {
+    const at = spot(c, i, p), C = cellPx(at), n = g.length, off = n > 1 ? (k - (n - 1) / 2) * C * .32 : 0, sc = n > 1 ? .78 : 1;
+    const glow = phase === 'pick' && c === col && pickable.includes(i) && seatOf(G, c).type === 'human';
+    list.push({ x: at.x + off, y: at.y - (glow ? Math.abs(Math.sin(T * 7)) * C * .3 : 0), s: C * 1.05 * sc * (p === HOME ? .62 : 1), c, glow });
+  });
+  for (const f of flyers) { const to = yardSpot(f.c, f.j), e = f.t, C = cellPx(to), h = Math.sin(e * Math.PI) * C * 3; list.push({ x: f.from.x + (to.x - f.from.x) * e, y: f.from.y + (to.y - f.from.y) * e - h, s: C * 1.05, c: f.c }); }
+  if (anim && anim.path) {
+    const a = anim, p0 = a.k === 0 ? a.from : a.path[a.k - 1], p1 = a.path[Math.min(a.k, a.path.length - 1)];
+    const A = spot(a.col, a.i, p0), Bp = spot(a.col, a.i, p1), e = a.t;
+    const C = cellPx(A) + (cellPx(Bp) - cellPx(A)) * e;
+    list.push({ x: A.x + (Bp.x - A.x) * e, y: A.y + (Bp.y - A.y) * e - Math.sin(e * Math.PI) * C * (a.from === -1 ? 1.2 : .55), s: C * 1.12, c: a.col, top: true });
+  }
+  list.sort((a, b) => (a.top ? 1 : 0) - (b.top ? 1 : 0) || a.y - b.y);
+  for (const t of list) drawToken(t.x, t.y, t.s, t.c, t.glow);
+  drawParts();
+  if (toastT > 0 && toastMsg) {
+    cx.globalAlpha = Math.min(1, toastT * 3); cx.font = '800 15px system-ui'; const w = cx.measureText(toastMsg).width + 28;
+    const mid = P(.5, .5); rrect(mid.x - w / 2, mid.y - 20, w, 40, 20); cx.fillStyle = 'rgba(20,12,50,.85)'; cx.fill();
+    cx.fillStyle = '#fff'; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(toastMsg, mid.x, mid.y); cx.globalAlpha = 1; cx.textBaseline = 'alphabetic';
+  }
+}
+function drawParts() {
+  for (const p of parts) {
+    cx.globalAlpha = Math.min(1, p.life * 2); cx.fillStyle = p.c;
+    if (p.rect) { cx.save(); cx.translate(p.x, p.y); cx.rotate(p.rot); cx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); cx.restore(); }
+    else if (p.star) star(p.x, p.y, p.s * 1.3); else { cx.beginPath(); cx.arc(p.x, p.y, p.s / 2, 0, 7); cx.fill(); }
+  }
+  cx.globalAlpha = 1;
+}
+
+/* ---------------- screens */
+function show(id) { document.querySelectorAll('.screen').forEach(s => s.classList.toggle('show', s.id === id)); document.body.dataset.s = id || 'play'; }
+function refreshTitle() { $('#bContinue').style.display = savedGame() ? '' : 'none'; }
+function showWin() {
+  const humans = activeCols(G).filter(c => seatOf(G, c).type === 'human');
+  const first = G.rank[0], fs = seatOf(G, first), youWon = fs.type === 'human';
+  $('#winTitle').textContent = humans.length > 1 ? fs.name + ' WINS!' : youWon ? 'YOU WIN!' : fs.name + ' wins';
+  $('#trophy').innerHTML = ART.trophy && youWon || (ART.trophy && humans.length > 1) ? '<img src="art/trophy.webp" alt="">' : youWon || humans.length > 1 ? '🏆' : '🙈';
+  $('#winList').innerHTML = G.rank.map((c, k) => `<div><b>${['🥇', '🥈', '🥉', '4th'][k]}</b><span class="c" style="background:${HEX[c][1]}"></span>${seatOf(G, c).name}</div>`).join('');
+  persist(); show('win'); if (youWon || humans.length > 1) { sWin(); confetti(); }
+}
+// setup screen
+function setupUI() {
+  $('#colorRow').innerHTML = ORDER.map(c => `<button class="dot ${pref.color === c ? 'on' : ''}" data-c="${c}" style="background:linear-gradient(${HEX[c][0]},${HEX[c][2]})" aria-label="${NAME[c]}"></button>`).join('');
+  document.querySelectorAll('#modeRow .opt').forEach(b => b.classList.toggle('on', b.dataset.m === pref.mode));
+  document.querySelectorAll('#passRow .opt').forEach(b => b.classList.toggle('on', +b.dataset.n === pref.n));
+  document.querySelectorAll('#levelRow .opt').forEach(b => b.classList.toggle('on', +b.dataset.l === pref.level));
+  $('#passRow').style.display = pref.mode === 'pass' ? '' : 'none';
+  $('#colorBox').style.display = $('#levelBox').style.display = pref.mode === 'pass' ? 'none' : '';
+}
+$('#setup').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.m) pref.mode = b.dataset.m; if (b.dataset.n) pref.n = +b.dataset.n; if (b.dataset.l) pref.level = +b.dataset.l; if (b.dataset.c) pref.color = b.dataset.c;
+  setupUI(); savePref();
+});
+$('#bPlay').onclick = () => { setupUI(); show('setup'); };
+$('#bContinue').onclick = () => { const g = savedGame(); if (g) startGame(g); };
+$('#bBack').onclick = () => { refreshTitle(); show('title'); };
+$('#bStart').onclick = () => { savePref(); startGame(); };
+$('#bMenu').onclick = () => { soundUI(); show('menu'); };
+function soundUI() {
+  $('#soundRow').innerHTML = Object.entries(LudoSound.SETS).map(([k, v]) => `<button class="opt ${pref.sset === k ? 'on' : ''}" data-ss="${k}">${v.name.replace(' (current)', '')}</button>`).join('');
+}
+$('#soundRow').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  pref.sset = b.dataset.ss; savePref(); soundUI();
+  [['roll', 0], ['step', 800], ['step', 980], ['capture', 1250]].forEach(([ev, ms]) => setTimeout(() => LudoSound.play(pref.sset, ev), ms));
+});
+$('#bResume').onclick = () => show(null);
+$('#bRestart').onclick = () => startGame();
+$('#bHome').onclick = $('#bWinHome').onclick = () => { G = null; parts = []; refreshTitle(); show('title'); };
+$('#bAgain').onclick = () => startGame();
+$('#bSound').onclick = () => { pref.sound = !pref.sound; $('#bSound').textContent = pref.sound ? '🔊' : '🔇'; savePref(); };
+$('#bSound').textContent = pref.sound ? '🔊' : '🔇';
+
+// little animated picture on the title screen (until the ChatGPT title art arrives)
+const tc = $('#titleArt').getContext('2d');
+function drawTitleArt() {
+  cx = tc; tc.clearRect(0, 0, 600, 600);
+  if (ART.board) { tc.save(); tc.translate(300, 330); tc.rotate(Math.sin(T * .6) * .05); tc.drawImage(IMG.board, -230, -230, 460, 460); tc.restore(); }
+  ORDER.forEach((c, k) => drawToken(150 + k * 100, 160 + Math.abs(Math.sin(T * 3 + k)) * -30 + 40, 110, c, false));
+  drawDie(195, 440 + Math.sin(T * 3) * 8, 90, 1 + ((T * 1.5 | 0) % 6), Math.sin(T * 2) * .25, false);
+  drawDie(315, 430 + Math.cos(T * 3) * 8, 90, 1 + ((T * 1.5 + 3 | 0) % 6), -Math.sin(T * 2) * .25, false);
+  cx = mainCx;
+}
+// switch between table view and flat view
+function setView(v) { pref.view = v; VIEW3D = v === '3d'; savePref(); $('#bView').textContent = VIEW3D ? '2D' : '3D'; resize(); }
+
+/* ---------------- loop */
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  if (!$('#menu').classList.contains('show')) update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+VIEW3D = pref.view !== 'flat'; $('#bView').textContent = VIEW3D ? '2D' : '3D'; $('#bView').onclick = () => setView(VIEW3D ? 'flat' : '3d');
+resize(); refreshTitle(); requestAnimationFrame(loop);
+
+// test hooks
+window.__ludo = { get G() { return G; }, get phase() { return phase; }, startGame, newGame, doRoll, choose, legal, TRACK, spot, pref };
+</script>
+</body>
+</html>
