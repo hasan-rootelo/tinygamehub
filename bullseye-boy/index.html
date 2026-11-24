@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Bullseye Boy · Tiny Game Hub</title>
+<meta name="description" content="Pull the bow, aim and hit the bullseye! A free archery game with real arrow physics, wind and moving targets.">
+<link rel="icon" href="/img/icon-192.png">
+<meta name="theme-color" content="#7cc6f2">
+<style>
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { margin:0; width:100%; height:100%; overflow:hidden; background:#7cc6f2; font-family:system-ui, -apple-system, 'Segoe UI', sans-serif; color:#fff;
+  user-select:none; -webkit-user-select:none; touch-action:none; }
+canvas { position:fixed; inset:0; width:100%; height:100%; display:block; }
+#hud { position:fixed; top:max(10px, env(safe-area-inset-top)); left:10px; right:10px; display:flex; gap:8px; align-items:flex-start; pointer-events:none; }
+.pill { background:rgba(20,30,50,.72); border-radius:14px; padding:6px 12px; font-weight:800; font-size:15px; line-height:1.25; }
+#arrows { letter-spacing:2px; }
+#arrows .used { opacity:.25; }
+#score { margin-left:auto; text-align:right; }
+#msg { position:fixed; left:50%; top:22%; transform:translate(-50%, 0) scale(.6); font-weight:900; font-size:44px; color:#ffe14d;
+  text-shadow:0 4px 0 #b5401c, 0 8px 16px rgba(0,0,0,.4); opacity:0; transition:opacity .2s, transform .25s; pointer-events:none; text-align:center; white-space:nowrap; }
+#msg.on { opacity:1; transform:translate(-50%, 0) scale(1); }
+#hint { position:fixed; left:50%; bottom:calc(max(14px, env(safe-area-inset-bottom)) + 6px); transform:translateX(-50%); background:rgba(20,30,50,.72);
+  padding:6px 14px; border-radius:14px; font-weight:700; font-size:14px; pointer-events:none; text-align:center; max-width:92%; }
+.screen { position:fixed; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center; padding:24px; text-align:center;
+  background:radial-gradient(circle at 50% 30%, rgba(40,90,60,.9), rgba(10,30,20,.95)); }
+body[data-s="title"] #title, body[data-s="map"] #map, body[data-s="end"] #end { display:flex; }
+body:not([data-s="play"]) #hud, body:not([data-s="play"]) #hint { display:none; }
+h1 { margin:0; font-size:clamp(40px, 11vw, 70px); line-height:1; color:#ffe14d; text-shadow:0 4px 0 #b5401c, 0 9px 18px rgba(0,0,0,.45); }
+.screen p { max-width:460px; line-height:1.45; opacity:.92; }
+.go { margin-top:14px; font-size:22px; font-weight:900; color:#fff; border:0; border-radius:16px; padding:12px 40px; background:linear-gradient(#45d56a,#23a64a); box-shadow:0 5px 0 #157a33; cursor:pointer; }
+.go.alt { background:linear-gradient(#ffcf3f,#e79a12); box-shadow:0 5px 0 #9c5f00; color:#2b1a00; font-size:17px; padding:10px 26px; }
+#levels { display:grid; grid-template-columns:repeat(5, 64px); gap:10px; margin:14px 0; }
+#levels button { height:64px; border-radius:16px; border:0; font-size:22px; font-weight:900; color:#2b1a00; background:linear-gradient(#ffe066,#f5b316); box-shadow:0 4px 0 #a86f00; cursor:pointer; position:relative; }
+#levels button small { position:absolute; left:0; right:0; bottom:3px; font-size:10px; letter-spacing:-1px; }
+#levels button:disabled { background:#5b6270; box-shadow:0 4px 0 #3a3f49; color:#cfd3da; cursor:default; }
+#levels button.bonus { background:linear-gradient(#f7a6ff,#c45be0); box-shadow:0 4px 0 #7d2a99; }
+#endStars { font-size:44px; letter-spacing:6px; margin:8px 0; }
+#title { background:#2a6a3a url(art/title.webp) center/cover no-repeat; justify-content:flex-end; padding-bottom:max(40px, env(safe-area-inset-bottom)); }
+#title h1 { position:absolute; top:max(40px, env(safe-area-inset-top)); left:0; right:0; }
+#title p { background:rgba(10,30,20,.6); border-radius:14px; padding:10px 14px; }
+#map img { height:min(22vh, 170px); margin-bottom:4px; }
+#endPic { height:min(30vh, 240px); }
+@media (max-height:520px) {
+  #endPic { height:26vh; } #map img { display:none; }
+  .screen h1 { font-size:34px !important; } #endStars { font-size:30px; margin:2px 0; } .screen p { margin:6px 0; }
+  .go { margin-top:6px; padding:8px 30px; font-size:18px; } .go.alt { padding:7px 20px; font-size:15px; }
+  #end { padding:8px; } #endPic { height:22vh; } #hint { display:none; }
+}
+#turn { position:fixed; left:50%; top:46%; transform:translateX(-50%); background:rgba(20,30,50,.78); padding:8px 16px; border-radius:14px; font-weight:800; font-size:15px; pointer-events:none; display:none; white-space:nowrap; }
+@media (orientation:portrait) { body[data-s="play"] #turn { display:block; } }
+#endStars .off { opacity:.25; filter:grayscale(1); }
+</style>
+</head>
+<body data-s="title">
+<canvas id="cv"></canvas>
+<div id="hud">
+  <div class="pill">Level <span id="lvl">1</span><br><span id="arrows"></span></div>
+  <div class="pill" id="windPill">Wind<br><span id="wind">calm</span></div>
+  <div class="pill" id="score">Score <span id="sc">0</span><br><small id="need"></small></div>
+</div>
+<div id="msg"></div>
+<div id="turn">📱↻ Turn your phone sideways for a bigger view</div>
+<div id="hint">Hold to pull the bow · slide up / down to aim · let go to shoot</div>
+
+<div class="screen" id="title">
+  <h1>BULLSEYE<br>BOY</h1>
+  <p>Hold the screen to pull the bow. The longer you hold, the stronger the shot. Slide your finger up or down to aim. Let go to shoot!</p>
+  <button class="go" id="play">PLAY ▶</button>
+</div>
+<div class="screen" id="map">
+  <img src="art/hero.webp" alt=""><h1 style="font-size:40px">LEVELS</h1>
+  <div id="levels"></div>
+  <button class="go alt" id="back">◀ Back</button>
+</div>
+<div class="screen" id="end">
+  <img id="endPic" src="art/cheer.webp" alt=""><h1 id="endTitle">GREAT!</h1>
+  <div id="endStars"></div>
+  <p id="endText"></p>
+  <button class="go" id="next">NEXT LEVEL ▶</button>
+  <button class="go alt" id="retry">↻ Try again</button>
+  <button class="go alt" id="toMap">Levels</button>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rr = (a, b) => a + Math.random() * (b - a);
+
+/* ---------------- levels: distance (m), wind (m/s² range), moving target, balloon rounds, score needed */
+const LEVELS = [
+  { d: 9, wind: 0, need: 25 },
+  { d: 11, wind: 0, need: 28 },
+  { d: 12, wind: .4, need: 28 },
+  { balloons: true, d: [7, 16], need: 3 },
+  { d: 13, wind: .7, need: 28 },
+  { d: 15, wind: .9, need: 28 },
+  { d: 14, wind: .6, move: .5, need: 26 },
+  { balloons: true, d: [9, 17], rise: true, need: 3 },
+  { d: 16, wind: 1.1, need: 26 },
+  { d: 17, wind: 1.3, move: .6, need: 24 }
+];
+const ARROWS = 5, G = 9.8, VMAX = 17, M = 48;      // M = screen pixels per metre (before scaling)
+const SHOULDER = 1.35, R = .6, CY = 1.25;            // target radius and centre height (m)
+const KEY = 'bullseyeboy:v1';
+let save = { stars: {} };
+try { Object.assign(save, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { }
+const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { } };
+
+const TEST_MODE = /[?&]test\b/.test(location.search);   // add ?test to the address to open every level
+/* ---------------- pictures */
+const IMG = {};
+let loaded = 0;
+const NAMES = ['body', 'arms', 'arrow', 'target', 'face', 'flag', 'ground', 'bg1', 'bg2', 'balloon1', 'balloon2', 'balloon3', 'balloon4'];
+NAMES.forEach(n => { const im = new Image(); im.onload = im.onerror = () => loaded++; im.src = 'art/' + n + '.webp'; IMG[n] = im; });
+const ok = n => IMG[n].complete && IMG[n].naturalWidth > 0;
+const BODY_PPM = 701 / (2.04);             // body picture: pixels per metre (boy is about 2 m in game units)
+const PIVOT = { bx: 113.1, by: 237.4, ax: 116.9, ay: 197.2 };   // shoulder point in body.webp and arms.webp
+const NOCK = { x: .468, y: .116 };          // arrow centre relative to the shoulder, before rotation
+const launch = () => ({ x: Math.cos(angle) * NOCK.x - Math.sin(angle) * NOCK.y, y: SHOULDER + Math.sin(angle) * NOCK.x + Math.cos(angle) * NOCK.y });
+const VIEW_L = -2.7, VIEW_R = 18.6, MIN_SKY = 7.5;   // the whole range always fits on one screen (metres)
+const BCOL = ['#ff4a4a', '#3b8cff', '#ffd23a', '#b25cff'];
+
+/* ---------------- canvas */
+const cv = $('#cv'), cx = cv.getContext('2d');
+const cam = { x: 0 };
+let S = 1, W = 0, H = 0, DPR = 1, groundY = 0;
+function resize() {
+  DPR = Math.min(2, devicePixelRatio || 1); W = innerWidth; H = innerHeight;
+  cv.width = W * DPR; cv.height = H * DPR;
+  groundY = H - Math.max(56, H * .11);
+  S = Math.min(W / ((VIEW_R - VIEW_L) * M), (groundY - 60) / (MIN_SKY * M));   // fit the boy and the target side by side
+  const k = S * M, extra = W / k - (VIEW_R - VIEW_L);
+  cam.x = (VIEW_L - Math.max(0, extra) * .3) * M;
+}
+addEventListener('resize', resize); resize();
+const sx = x => (x * M - cam.x) * S, sy = y => groundY - y * M * S;
+
+/* ---------------- sound */
+let AC = null;
+function audio() { try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); AC.resume(); } catch (e) { } }
+function tn(f, d, type = 'sine', v = .08, w = 0, sl = 0) {
+  if (!AC) return; const t0 = AC.currentTime + w, o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t0); if (sl) o.frequency.exponentialRampToValueAtTime(sl, t0 + d);
+  g.gain.setValueAtTime(v, t0); g.gain.exponentialRampToValueAtTime(.0001, t0 + d); o.connect(g).connect(AC.destination); o.start(t0); o.stop(t0 + d + .05);
+}
+const sTwang = () => { tn(220, .25, 'triangle', .1, 0, 90); tn(900, .08, 'square', .03); };
+const sThunk = () => { tn(140, .15, 'square', .1, 0, 60); tn(90, .2, 'triangle', .08, .02); };
+const sPop = () => { tn(900, .08, 'square', .08, 0, 200); };
+const sCheer = () => [523, 659, 784, 1047].forEach((f, i) => tn(f, .25, 'triangle', .07, i * .09));
+const sMiss = () => tn(300, .4, 'sawtooth', .05, 0, 120);
+
+/* ---------------- state */
+let L = null, LI = 0, phase = 'title', score = 0, shotsLeft = 0, pops = 0;
+let angle = .18, power = 0, charging = false, chargeT = 0, arrow = null, stuck = [], target = null, balloons = [], wind = 0, t = 0, waitT = 0;
+let msgT = 0;
+function say(txt, col) { const m = $('#msg'); m.textContent = txt; m.style.color = col || '#ffe14d'; m.classList.add('on'); msgT = 1.3; }
+
+function startLevel(i) {
+  LI = i; L = LEVELS[i]; score = 0; pops = 0; shotsLeft = ARROWS; stuck = []; arrow = null;
+  if (L.balloons) {
+    balloons = Array.from({ length: 6 }, (_, k) => ({ x: rr(L.d[0], L.d[1]), y: rr(1.2, 4.6), y0: 0, c: BCOL[k % 4], img: k % 4 + 1, popped: false, ph: rr(0, 6) }));
+    balloons.forEach(b => b.y0 = b.y); target = null;
+  } else { const y0 = L.move ? CY + .75 : CY; target = { x: L.d, y: y0, y0 }; balloons = []; }
+  newWind();
+  phase = 'intro'; waitT = 1.2; document.body.dataset.s = 'play';
+  $('#lvl').textContent = i + 1; hud();
+  say(L.balloons ? 'Bonus! Pop the balloons' : `Level ${i + 1}`);
+}
+function newWind() {
+  const w = L.wind || 0; wind = w ? +(rr(-w, w)).toFixed(1) : 0;
+  if (L.balloons) wind = 0;
+}
+function hud() {
+  $('#arrows').innerHTML = Array.from({ length: ARROWS }, (_, k) => `<span class="${k < ARROWS - shotsLeft ? 'used' : ''}">➶</span>`).join('');
+  $('#sc').textContent = L.balloons ? pops : score;
+  $('#need').textContent = L.balloons ? `Pop ${L.need}` : `Need ${L.need}`;
+  $('#wind').textContent = wind === 0 ? 'calm' : (wind > 0 ? '→ ' : '← ') + Math.abs(wind).toFixed(1);
+}
+
+/* ---------------- input: hold to charge, slide to aim, release to shoot */
+let holdY = 0, holdAngle = 0;
+function down(y) { if (phase !== 'aim') return; audio(); charging = true; chargeT = 0; holdY = y; holdAngle = angle; }
+function move(y) { if (charging) angle = clamp(holdAngle + (holdY - y) * .006, -.35, 1.25); }
+function up() { if (!charging) return; charging = false; if (power < .08) { power = 0; return; } shoot(); }
+cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); down(e.clientY); });
+cv.addEventListener('pointermove', e => move(e.clientY));
+cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+const keys = {};
+addEventListener('keydown', e => { if (e.repeat) return; keys[e.code] = true; if (e.code === 'Space') { e.preventDefault(); down(0); } });
+addEventListener('keyup', e => { keys[e.code] = false; if (e.code === 'Space') up(); });
+
+function shoot() {
+  const v = VMAX * power;
+  const L0 = launch(); arrow = { x: L0.x, y: L0.y, vx: Math.cos(angle) * v, vy: Math.sin(angle) * v, a: angle, fly: true, t: 0 };
+  shotsLeft--; phase = 'flight'; power = 0; sTwang(); hud();
+}
+
+/* ---------------- physics */
+function step(dt) {
+  t += dt;
+  if (target && L.move) target.y = target.y0 + Math.sin(t * 1.3) * L.move * 1.6;
+  for (const b of balloons) if (!b.popped) { b.y = b.y0 + Math.sin(t * 1.1 + b.ph) * .35 + (L.rise ? ((t * .3 + b.ph) % 3.5) - 1.5 : 0); }
+  if (phase === 'intro') { waitT -= dt; if (waitT <= 0) phase = 'aim'; }
+  if (phase === 'aim' && charging) { chargeT += dt; power = 1 - Math.abs(1 - (chargeT / 1.1) % 2); }   // power swings up and down while held
+  if (phase === 'aim') { if (keys.ArrowUp) angle = Math.min(1.25, angle + dt * .6); if (keys.ArrowDown) angle = Math.max(-.35, angle - dt * .6); }
+  if (arrow && arrow.fly) {
+    for (let k = 0; k < 4; k++) {
+      const h = dt / 4, ox = arrow.x, oy = arrow.y;
+      arrow.vx += wind * h; arrow.vy -= G * h;
+      arrow.x += arrow.vx * h; arrow.y += arrow.vy * h; arrow.t += h;
+      arrow.a = Math.atan2(arrow.vy, arrow.vx);
+      const tipX = arrow.x + Math.cos(arrow.a) * .45, tipY = arrow.y + Math.sin(arrow.a) * .45;
+      // target: crossing its face
+      if (target && ox + Math.cos(arrow.a) * .45 < target.x && tipX >= target.x) {
+        const yy = oy + (tipY - oy) * ((target.x - (ox + Math.cos(arrow.a) * .45)) / Math.max(1e-6, tipX - ox - Math.cos(arrow.a) * .45));
+        const d = Math.abs(yy - target.y);
+        if (d < R) { const pts = 10 - Math.floor(d / (R / 10)); hit(pts, target.x, yy); return; }
+      }
+      // balloons
+      for (const b of balloons) if (!b.popped && Math.hypot(tipX - b.x, tipY - (b.y + .86)) < .42) {
+        b.popped = true; pops++; sPop(); say('POP!', '#ff8ad8'); hud();
+        for (let q = 0; q < 14; q++) parts.push({ x: b.x, y: b.y + .86, vx: rr(-4, 4), vy: rr(-2, 5), life: .7, c: b.c });
+      }
+      if (tipY <= 0) { arrow.fly = false; arrow.y = -Math.sin(arrow.a) * .3; stuck.push({ ...arrow, ground: true }); sThunk(); after(L.balloons ? '' : 'Missed!'); return; }
+      if (arrow.x > cam.x / M + W / (S * M) + 3) { arrow.fly = false; after('Missed!'); return; }
+    }
+  }
+  if (phase === 'wait') { waitT -= dt; if (waitT <= 0) nextShot(); }
+  for (const p of parts) { p.vy -= 9 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; }
+  parts = parts.filter(p => p.life > 0);
+  msgT -= dt; if (msgT <= 0) $('#msg').classList.remove('on');
+}
+let parts = [];
+function hit(pts, x, y) {
+  arrow.fly = false; arrow.x = x - Math.cos(arrow.a) * .3; arrow.y = y - Math.sin(arrow.a) * .3;
+  stuck.push({ ...arrow, onTarget: true, dy: y - target.y });
+  score += pts; sThunk(); hud();
+  if (pts === 10) { say('BULLSEYE! 10', '#ffe14d'); sCheer(); for (let q = 0; q < 20; q++) parts.push({ x, y, vx: rr(-5, 1), vy: rr(-2, 6), life: .9, c: ['#ffe14d', '#ff6b6b', '#fff'][q % 3] }); }
+  else say(pts >= 8 ? `Great! ${pts}` : `${pts}`, pts >= 8 ? '#ffe14d' : '#ffffff');
+  after('');
+}
+function after(text) {
+  if (text) { say(text, '#ff9a9a'); sMiss(); }
+  phase = 'wait'; waitT = 1.4;
+}
+function nextShot() {
+  if (L.balloons && pops >= 6) return finish();
+  if (shotsLeft <= 0) return finish();
+  newWind(); hud(); phase = 'aim';
+}
+function finish() {
+  phase = 'done';
+  const got = L.balloons ? pops : score, pass = got >= L.need;
+  const stars = !pass ? 0 : L.balloons ? (pops >= 5 ? 3 : pops >= 4 ? 2 : 1) : (score >= L.need + 14 ? 3 : score >= L.need + 7 ? 2 : 1);
+  if (stars) { save.stars[LI] = Math.max(save.stars[LI] || 0, stars); persist(); sCheer(); }
+  $('#endPic').src = 'art/' + (pass ? 'cheer' : 'sad') + '.webp';
+  $('#endTitle').textContent = pass ? (stars === 3 ? 'PERFECT!' : 'WELL DONE!') : 'SO CLOSE!';
+  $('#endStars').innerHTML = [1, 2, 3].map(k => `<span class="${k <= stars ? '' : 'off'}">⭐</span>`).join('');
+  $('#endText').textContent = L.balloons ? `You popped ${pops} balloons (needed ${L.need}).` : `You scored ${score} out of 50 (needed ${L.need}).`;
+  $('#next').style.display = pass && LI < LEVELS.length - 1 ? '' : 'none';
+  setTimeout(() => document.body.dataset.s = 'end', 900);
+}
+
+/* ---------------- drawing */
+function drawSky() {
+  const im = IMG[LI >= 5 ? 'bg2' : 'bg1'];
+  if (!ok(LI >= 5 ? 'bg2' : 'bg1')) { cx.fillStyle = '#7cc6f2'; cx.fillRect(0, 0, W, H); return; }
+  const bottom = groundY + 30 * S, span = 70 * M * S * .08;      // slow side-scroll for depth
+  const sc = Math.max(bottom / im.height, (W + span) / im.width), w = im.width * sc, h = im.height * sc;
+  const shift = Math.min(span, Math.max(0, cam.x * S * .08));
+  cx.fillStyle = '#7cc6f2'; cx.fillRect(0, 0, W, H);
+  cx.drawImage(im, -shift, bottom - h, w, h);
+}
+function drawGround() {
+  const g = IMG.ground, k = .34 * S, gy = groundY - 165 * k;     // grass strip: blades rise a little above the ground line
+  cx.fillStyle = '#6a3a1b'; cx.fillRect(0, groundY, W, H - groundY);
+  if (ok('ground')) {
+    const w = g.width * k, off = ((cam.x * S) % w + w) % w;
+    for (let x = -off; x < W; x += w - 1) cx.drawImage(g, x, gy, w, g.height * k);
+  }
+  cx.font = `800 12px system-ui`; cx.textAlign = 'center';
+  for (let m = 5; m < 120; m += 5) { const x = sx(m); if (x < -40 || x > W + 40) continue; cx.fillStyle = 'rgba(255,240,210,.85)'; cx.fillText(m + ' m', x, Math.min(H - 8, groundY + 30)); }
+}
+function drawArcher() {
+  const k = S * M, px = sx(0), py = sy(SHOULDER), sc = k / BODY_PPM;
+  if (ok('body')) cx.drawImage(IMG.body, px - PIVOT.bx * sc, py - PIVOT.by * sc, IMG.body.width * sc, IMG.body.height * sc);
+  if (!ok('arms')) return;
+  cx.save(); cx.translate(px, py); cx.rotate(-angle);
+  if (phase === 'aim' && charging && power > .75) cx.translate((Math.random() - .5) * 1.5, (Math.random() - .5) * 1.5);   // strain at full pull
+  cx.drawImage(IMG.arms, -PIVOT.ax * sc, -PIVOT.ay * sc, IMG.arms.width * sc, IMG.arms.height * sc);
+  cx.restore();
+}
+function drawArrowShape(x, y, a, k) {       // (x, y) = centre of the arrow
+  if (!ok('arrow')) return;
+  const im = IMG.arrow, len = .92 * k, h = len * im.height / im.width;
+  cx.save(); cx.translate(x, y); cx.rotate(a); cx.drawImage(im, -len / 2, -h / 2, len, h); cx.restore();
+}
+const T_PPM = 185 / R, T_CX = 205.5, T_CY = 229, T_SQ = .55;   // target picture: pixels per metre, bullseye position, side squash
+function drawTarget() {
+  if (!target) return;
+  const k = S * M, x = sx(target.x), y = sy(target.y), sc = k / T_PPM;
+  if (x < -200 || x > W + 200) return;
+  const im = L.move ? IMG.face : IMG.target;
+  if (L.move) { cx.fillStyle = 'rgba(0,0,0,.18)'; cx.beginPath(); cx.ellipse(x, groundY + 4 * S, .5 * k, .08 * k, 0, 0, 7); cx.fill(); }
+  if (ok(L.move ? 'face' : 'target')) cx.drawImage(im, x - T_CX * sc * T_SQ, y - T_CY * sc, im.width * sc * T_SQ, im.height * sc);
+}
+function drawBalloons() {
+  const k = S * M;
+  for (const b of balloons) {
+    if (b.popped) continue; const x = sx(b.x), y = sy(b.y), im = IMG['balloon' + b.img];
+    if (!ok('balloon' + b.img)) continue;
+    const h = 1.32 * k, w = h * im.width / im.height;
+    cx.drawImage(im, x - w / 2, y - h, w, h);
+  }
+}
+function drawStuck() {
+  const k = S * M;
+  for (const a of stuck) {
+    const y = a.onTarget ? target.y + a.dy - Math.sin(a.a) * .3 : a.y;
+    drawArrowShape(sx(a.x), sy(y), -a.a, k);
+  }
+  if (arrow && arrow.fly) {
+    drawArrowShape(sx(arrow.x), sy(arrow.y), -arrow.a, k);
+    if (sy(arrow.y) < 0) { const x = sx(arrow.x); cx.fillStyle = '#ffe14d'; cx.beginPath(); cx.moveTo(x, 6); cx.lineTo(x - 8, 20); cx.lineTo(x + 8, 20); cx.fill(); }   // arrow is above the screen
+  }
+}
+function drawAimGuide() {
+  if (phase !== 'aim' || !charging || LI > 2) return;     // a short helper path, only in the first levels
+  const v = VMAX * power; let { x, y } = launch(), vx = Math.cos(angle) * v, vy = Math.sin(angle) * v;
+  cx.fillStyle = 'rgba(255,255,255,.85)';
+  for (let i = 0; i < 26; i++) { for (let q = 0; q < 3; q++) { vx += wind * .01; vy -= G * .01; x += vx * .01; y += vy * .01; } cx.beginPath(); cx.arc(sx(x), sy(y), Math.max(2, 3.2 * S) * (1 - i / 30), 0, 7); cx.fill(); }
+}
+function drawPower() {
+  if (phase !== 'aim') return;
+  const k = S * M, x = sx(-.9), y = sy(0) - 4, h = Math.max(1.6 * k, 90), w = Math.max(.22 * k, 14);
+  cx.fillStyle = 'rgba(20,30,50,.6)'; cx.beginPath(); cx.roundRect(x - w / 2, y - h, w, h, w / 2); cx.fill();
+  const g = cx.createLinearGradient(0, y, 0, y - h); g.addColorStop(0, '#45d56a'); g.addColorStop(.6, '#ffd23a'); g.addColorStop(1, '#ff4a3a');
+  cx.fillStyle = g; cx.beginPath(); cx.roundRect(x - w / 2 + 3, y - 3 - (h - 6) * power, w - 6, (h - 6) * power, w / 2); cx.fill();
+  // angle readout
+  cx.fillStyle = '#fff'; cx.font = `800 15px system-ui`; cx.textAlign = 'center'; cx.fillText(Math.round(angle * 57.3) + '°', sx(.4), sy(2.2) - 6);
+}
+function drawWindFlag() {
+  if (!ok('flag')) return;
+  const k = S * M, x = sx(-1.7), y = sy(0), im = IMG.flag, h = 2.3 * k, sc = h / im.height, P = 41, pole = 21;
+  const str = wind ? .4 + Math.min(1, Math.abs(wind) / 2.5) * .6 : .35, flap = wind ? 1 + Math.sin(t * 9) * .05 : 1;
+  cx.save(); cx.translate(x, y - h);
+  cx.save(); cx.scale(wind < 0 ? -1 : 1, 1);
+  cx.drawImage(im, P, 0, im.width - P, im.height, (P - pole) * sc * (str * flap), 0, (im.width - P) * sc * str * flap, h);   // cloth, longer in stronger wind
+  cx.restore();
+  cx.drawImage(im, 0, 0, P, im.height, -pole * sc, 0, P * sc, h);   // pole on top
+  cx.restore();
+}
+function drawTargetCam() {     // close-up of the target in the corner
+  if (!target || !ok('face')) return;
+  const r = Math.min(W, H) * .11, x = W - r - 14, y = (Math.min(W, H) > 500 ? 78 : 70) + r + 8;
+  cx.save(); cx.fillStyle = 'rgba(20,30,50,.65)'; cx.beginPath(); cx.arc(x, y, r + 6, 0, 7); cx.fill();
+  cx.beginPath(); cx.arc(x, y, r, 0, 7); cx.clip();
+  const sc = r / 205; cx.drawImage(IMG.face, x - T_CX * sc, y - T_CY * sc, IMG.face.width * sc, IMG.face.height * sc);
+  const ry = 185 * sc;
+  for (const a of stuck) if (a.onTarget) { const px = x + Math.sin(a.dy * 7) * ry * .12, py = y - a.dy / R * ry; cx.fillStyle = '#3a2410'; cx.beginPath(); cx.arc(px, py, 4, 0, 7); cx.fill(); cx.fillStyle = '#e03b3b'; cx.beginPath(); cx.arc(px, py, 2.3, 0, 7); cx.fill(); }
+  cx.restore();
+}
+function drawParts() { for (const p of parts) { cx.globalAlpha = clamp(p.life * 1.5, 0, 1); cx.fillStyle = p.c; cx.beginPath(); cx.arc(sx(p.x), sy(p.y), Math.max(2.5, 4 * S), 0, 7); cx.fill(); } cx.globalAlpha = 1; }
+function draw() {
+  cx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  drawSky(); drawGround(); drawTarget(); drawBalloons(); drawWindFlag(); drawArcher(); drawStuck(); drawAimGuide(); drawPower(); drawParts(); drawTargetCam();
+}
+
+/* ---------------- screens */
+function renderMap() {
+  $('#levels').innerHTML = LEVELS.map((l, i) => { const st = save.stars[i] || 0; const open = TEST_MODE || i === 0 || (save.stars[i - 1] || 0) > 0; return `<button class="${l.balloons ? 'bonus' : ''}" data-i="${i}" ${open ? '' : 'disabled'}>${open ? '' : '🔒'}${i + 1}<small>${'★'.repeat(st)}${'☆'.repeat(3 - st)}</small></button>`; }).join('');
+  document.querySelectorAll('#levels button').forEach(b => b.onclick = () => { audio(); startLevel(+b.dataset.i); });
+}
+$('#play').onclick = () => { audio(); renderMap(); document.body.dataset.s = 'map'; };
+$('#back').onclick = () => document.body.dataset.s = 'title';
+$('#toMap').onclick = () => { renderMap(); document.body.dataset.s = 'map'; };
+$('#retry').onclick = () => startLevel(LI);
+$('#next').onclick = () => startLevel(LI + 1);
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(.033, (now - last) / 1000); last = now;
+  if (L) step(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+window.__tgt = () => { if (target) return { x: target.x, y: target.y }; const b = balloons.filter(q => !q.popped).sort((p, q) => p.x - q.x)[0]; return b ? { x: b.x - .1, y: b.y + .86 } : { x: 30, y: 2 }; };
+window.__bb = { startLevel, state: () => ({ phase, score, shotsLeft, pops, wind, angle }), aimShoot: (a, p) => { angle = a; power = p; shoot(); }, step };
+})();
+</script>
+</body>
+</html>
