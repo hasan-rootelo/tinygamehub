@@ -2,146 +2,548 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Tiny Game Hub · Free games for phone and computer</title>
-<meta name="description" content="Tiny Game Hub: free, quick games you can play right in your browser on any phone or computer. Sail, climb, jump and drive a city bus. No downloads, no sign-up.">
-<meta name="theme-color" content="#2a1f6e">
-<link rel="canonical" href="https://tinygamehub.com/">
-<meta property="og:type" content="website">
-<meta property="og:url" content="https://tinygamehub.com/">
-<meta property="og:title" content="Tiny Game Hub · Free games for phone and computer">
-<meta property="og:description" content="Sail, climb, jump and drive a city bus. Free games that play right in your browser. No downloads.">
-<meta property="og:image" content="https://tinygamehub.com/img/share.jpg">
-<meta name="twitter:card" content="summary_large_image">
-<link rel="icon" type="image/png" sizes="192x192" href="/img/icon-192.png">
-<link rel="apple-touch-icon" href="/img/icon-180.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Russian Checkers · Tiny Game Hub</title>
+<meta name="description" content="Play Russian checkers (shashki) free against the computer or a friend. Flying kings, compulsory captures, three difficulty levels. No download.">
+<link rel="icon" href="/img/icon-192.png">
+<meta name="theme-color" content="#2a170c">
 <style>
-  :root { --ink:#1d1446; --gold:#ffd23f; --card:#ffffff; }
-  * { box-sizing:border-box; margin:0; }
-  html { -webkit-text-size-adjust:100%; background:#4a35a0; }
-  body {
-    font-family:'Baloo 2', system-ui, sans-serif; color:#fff; min-height:100vh;
-    background: radial-gradient(1200px 600px at 50% -10%, #6a4bd8 0%, transparent 60%),
-                linear-gradient(180deg, #2a1f6e 0%, #3a2a8f 45%, #5a3fb0 100%);
-  }
-  /* little floating stars in the background */
-  .sky { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:0; }
-  .sky i { position:absolute; width:4px; height:4px; border-radius:50%; background:#fff; opacity:.5; animation:tw 3s ease-in-out infinite; }
-  @keyframes tw { 50% { opacity:.1; transform:scale(.6); } }
-  @media (prefers-reduced-motion: reduce) { .sky i { animation:none; } .card { transition:none !important; } }
-
-  header { position:relative; z-index:1; text-align:center; padding:48px 20px 16px; }
-  .logo { font-weight:800; font-size:clamp(44px, 9vw, 84px); line-height:.95; letter-spacing:.5px; }
-  .logo span { display:inline-block; color:var(--gold); text-shadow:0 5px 0 #c2541b, 0 9px 0 #5a1e08, 0 14px 22px rgba(0,0,0,.35); }
-  .logo span:nth-child(2) { color:#7fe3ff; text-shadow:0 5px 0 #1f7fb0, 0 9px 0 #0b3a55, 0 14px 22px rgba(0,0,0,.35); }
-  .logo span:nth-child(3) { color:#9dff8a; text-shadow:0 5px 0 #2f9a2a, 0 9px 0 #12450f, 0 14px 22px rgba(0,0,0,.35); }
-  .tag { margin-top:18px; font-size:clamp(17px, 3.6vw, 22px); font-weight:500; opacity:.92; }
-
-  main { position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:20px 16px 40px; }
-  .grid { display:grid; gap:18px; grid-template-columns:repeat(2, minmax(0,1fr)); }
-  /* on phones, an odd last game gets a wide card so the row isn't lopsided */
-  @media (max-width:719px) {
-    .grid > .card:last-child:nth-child(odd) { grid-column:span 2; flex-direction:row; }
-    .grid > .card:last-child:nth-child(odd) .pic { width:46%; flex:none; }
-  }
-  @media (min-width:720px) { .grid { grid-template-columns:repeat(3, minmax(0,1fr)); gap:24px; } }
-
-  .card {
-    display:flex; flex-direction:column; text-decoration:none; color:var(--ink);
-    background:var(--card); border-radius:22px; overflow:hidden;
-    box-shadow:0 8px 0 rgba(0,0,0,.18), 0 18px 30px rgba(10,0,40,.35);
-    transition:transform .18s ease, box-shadow .18s ease;
-  }
-  .card:hover, .card:focus-visible { transform:translateY(-6px) rotate(-.6deg); box-shadow:0 14px 0 rgba(0,0,0,.18), 0 26px 40px rgba(10,0,40,.45); }
-  .card:focus-visible { outline:4px solid var(--gold); outline-offset:3px; }
-  .pic { position:relative; aspect-ratio:3/4; background:#ddd; }
-  .pic img { width:100%; height:100%; object-fit:cover; display:block; }
-  .badge { position:absolute; bottom:10px; left:10px; background:rgba(20,10,60,.78); color:#fff; font-size:13px; font-weight:700; padding:2px 10px; border-radius:999px; }
-  .info { padding:12px 14px 14px; display:flex; flex-direction:column; gap:4px; flex:1; }
-  .name { font-weight:800; font-size:clamp(18px, 3.8vw, 22px); line-height:1.1; }
-  .desc { font-size:14.5px; line-height:1.3; color:#4b4470; flex:1; }
-  .play { margin-top:8px; text-align:center; font-weight:800; font-size:18px; color:#fff; padding:6px 0 4px; border-radius:14px;
-          background:linear-gradient(#45d56a, #23a64a); box-shadow:0 4px 0 #157a33; }
-
-  footer { position:relative; z-index:1; text-align:center; padding:10px 20px 40px; font-size:15px; opacity:.85; line-height:1.6; }
-  footer b { color:var(--gold); }
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { margin:0; width:100%; height:100%; overflow:hidden; color:#fff; font-family:system-ui, -apple-system, 'Segoe UI', sans-serif; user-select:none; -webkit-user-select:none; touch-action:none; }
+body { background:#2a170c radial-gradient(ellipse at 50% 35%, #6a3d1f 0%, #3a2010 50%, #160a04 100%); }
+body.hasbg { background:#2a170c url(art/bg.webp) center/cover no-repeat; }
+#cv { position:fixed; inset:0; width:100%; height:100%; display:block; }
+.screen { position:fixed; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px; padding-top:max(20px, env(safe-area-inset-top)); background:rgba(20,10,4,.86); z-index:5; overflow:auto; }
+.screen.show { display:flex; }
+h1 { margin:0 0 6px; font-family:Georgia, 'Times New Roman', serif; font-size:clamp(40px, 11vw, 76px); font-weight:900; line-height:1.05;
+  background:linear-gradient(#fff6d8, #f2c96a 50%, #b97a1e); -webkit-background-clip:text; background-clip:text; color:transparent; filter:drop-shadow(0 3px 0 #4a2a08) drop-shadow(0 8px 16px rgba(0,0,0,.6)); }
+h2 { margin:8px 0 6px; font-size:14px; font-weight:800; letter-spacing:1px; text-transform:uppercase; opacity:.85; }
+.btn { border:0; border-radius:18px; font:900 20px system-ui; padding:14px 34px; margin:6px; cursor:pointer; color:#3a2205; background:linear-gradient(#ffe9a8, #e8b440); box-shadow:0 5px 0 #8a5a10, 0 8px 18px rgba(0,0,0,.4); }
+.btn:active { transform:translateY(3px); box-shadow:0 2px 0 #8a5a10; }
+.btn.dark { background:linear-gradient(#6b4a2e, #3e2614); color:#fff; box-shadow:0 5px 0 #1c0f05; font-size:17px; padding:11px 24px; }
+.row { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin:2px 0 8px; }
+.opt { border:3px solid transparent; border-radius:16px; padding:10px 14px; font:800 16px system-ui; background:rgba(255,255,255,.1); color:#fff; cursor:pointer; min-width:90px; }
+.opt.on { border-color:#f2c96a; background:rgba(242,201,106,.2); }
+.opt small { display:block; font-weight:600; font-size:12px; opacity:.75; margin-top:2px; }
+#title { background:#2a170c url(art/title.webp) center/cover no-repeat; justify-content:space-between; padding-bottom:max(40px, env(safe-area-inset-bottom)); }
+#title h1 { margin-top:7vh; }
+#title.noart { background:radial-gradient(ellipse at 50% 40%, #7a4a22, #1c0d04 75%); justify-content:center; }
+#titleArt { width:min(70vw, 320px); aspect-ratio:1; } #title:not(.noart) #titleArt { display:none; }
+@media (orientation:landscape) { #title:not(.noart) { background-position:center 74%; } #title:not(.noart)::before { content:''; position:absolute; inset:0; background:linear-gradient(rgba(10,4,0,.55), rgba(10,4,0,0) 45%, rgba(10,4,0,0) 70%, rgba(10,4,0,.5)); pointer-events:none; } #title > * { position:relative; } }
+#topbar { position:fixed; top:max(8px, env(safe-area-inset-top)); left:8px; right:8px; display:none; justify-content:space-between; z-index:3; pointer-events:none; }
+#topbar button { pointer-events:auto; height:42px; min-width:42px; padding:0 10px; border-radius:14px; border:0; background:rgba(0,0,0,.4); color:#fff; font:800 15px system-ui; cursor:pointer; }
+body[data-s="play"] #topbar { display:flex; }
+#endBig { font-size:80px; line-height:1; }
 </style>
 </head>
-<body>
-<div class="sky" aria-hidden="true" id="sky"></div>
+<body data-s="title">
+<canvas id="cv"></canvas>
+<div id="topbar"><span><button id="bMenu">☰</button> <button id="bUndo">↶ Undo</button></span><span><button id="bView">2D</button> <button id="bSound">🔊</button></span></div>
 
-<header>
-  <h1 class="logo"><span>Tiny</span> <span>Game</span> <span>Hub</span></h1>
-  <p class="tag">Free games for your phone and computer. No downloads, just tap and play!</p>
-</header>
+<div class="screen show noart" id="title">
+  <h1>RUSSIAN<br>CHECKERS</h1>
+  <canvas id="titleArt" width="640" height="640"></canvas>
+  <div><button class="btn" id="bPlay">PLAY ▶</button><br><button class="btn dark" id="bContinue" style="display:none">Continue game</button></div>
+</div>
 
-<main>
-  <div class="grid">
-    <a class="card" href="/russian-checkers/">
-      <div class="pic"><img src="/img/russian-checkers.webp" alt="Russian Checkers: shiny white and black checkers pieces with a gold-crowned king" loading="lazy" width="480" height="640"><span class="badge">♟️ Board game</span></div>
-      <div class="info"><div class="name">Russian Checkers</div><div class="desc">Classic shashki with flying kings – beat the computer or a friend!</div><div class="play">PLAY ▶</div></div>
-    </a>
-    <a class="card" href="/moto-rush/">
-      <div class="pic"><img src="/img/moto-rush.webp" alt="Moto Rush: a rider on a red sport motorbike leaning into a mountain curve at sunset" loading="lazy" width="480" height="640"><span class="badge">🏍️ Racing</span></div>
-      <div class="info"><div class="name">Moto Rush</div><div class="desc">Race through 4 worlds, dodge traffic, grab nitro and beat the rival riders!</div><div class="play">PLAY ▶</div></div>
-    </a>
-    <a class="card" href="/ludo/">
-      <div class="pic"><img src="/img/ludo.webp" alt="Ludo: happy red, green, yellow and blue tokens jumping over a Ludo board" loading="lazy" width="480" height="640"><span class="badge">🎲 Board game</span></div>
-      <div class="info"><div class="name">Ludo</div><div class="desc">Roll the dice and race your 4 tokens home against the computer or friends!</div><div class="play">PLAY ▶</div></div>
-    </a>
-    <a class="card" href="/bullseye-boy/">
-      <div class="pic"><img src="/img/bullseye-boy.webp" alt="Bullseye Boy: a boy archer hitting the bullseye in a sunny meadow" loading="lazy" width="480" height="640"><span class="badge">🎯 Archery</span></div>
-      <div class="info"><div class="name">Bullseye Boy</div><div class="desc">Pull the bow, beat the wind and hit the bullseye in 10 levels!</div><div class="play">PLAY ▶</div></div>
-    </a>
-    <a class="card" href="/big-city-bus/">
-      <div class="pic"><img src="/img/big-city-bus.webp" alt="Big City Bus: a red city bus chased by police between skyscrapers" loading="lazy" width="480" height="640"><span class="badge">🚌 Driving</span></div>
-      <div class="info"><div class="name">Big City Bus</div><div class="desc">Drive a 3D city bus, pick up passengers, obey the lights and escape the police!</div><div class="play">PLAY ▶</div></div>
-    </a>
-    <a class="card" href="/storm-sailor/">
-      <div class="pic"><img src="/img/storm-sailor.webp" alt="Storm Sailor: a little sailing boat on the open sea" loading="lazy" width="480" height="640"><span class="badge">⛵ Adventure</span></div>
-      <div class="info"><div class="name">Storm Sailor</div><div class="desc">Take the wheel and sail through ice, fog and storms to find the lost captain.</div><div class="play">PLAY ▶</div></div>
-    </a>
-    <a class="card" href="/beanstalk-leap/">
-      <div class="pic"><img src="/img/beanstalk-leap.webp" alt="Beanstalk Leap: a boy cheering below a giant beanstalk" loading="lazy" width="480" height="640"><span class="badge">☁️ Jumping</span></div>
-      <div class="info"><div class="name">Beanstalk Leap</div><div class="desc">Climb the giant beanstalk, then leap cloud to cloud up to the castle.</div><div class="play">PLAY ▶</div></div>
-    </a>
-    <a class="card" href="/sky-ladders/">
-      <div class="pic"><img src="/img/sky-ladders.webp" alt="Sky Ladders: a boy with goggles jumping for joy by a harbour" loading="lazy" width="480" height="640"><span class="badge">🎈 Climbing</span></div>
-      <div class="info"><div class="name">Sky Ladders</div><div class="desc">Jump from ladder to ladder under hot-air balloons, and dodge the birds!</div><div class="play">PLAY ▶</div></div>
-    </a>
-    <a class="card" href="/treetop-run/">
-      <div class="pic"><img src="/img/treetop-run.webp" alt="Treetop Run: treetops under a full moon at night" loading="lazy" width="480" height="640"><span class="badge">🌙 Platformer</span></div>
-      <div class="info"><div class="name">Treetop Run</div><div class="desc">Run and jump across the night-forest treetops all the way to the castle.</div><div class="play">PLAY ▶</div></div>
-    </a>
-    <a class="card" href="/red-truck/">
-      <div class="pic"><img src="/img/red-truck.webp" alt="Red Truck Farm Run: a red pickup truck driving past farm fields" loading="lazy" width="480" height="640"><span class="badge">🚚 Driving</span></div>
-      <div class="info"><div class="name">Red Truck Farm Run</div><div class="desc">Drive to the farm, grab coins and fuel, and don't flip your truck!</div><div class="play">PLAY ▶</div></div>
-    </a>
+<div class="screen" id="setup">
+  <h2>Opponent</h2>
+  <div class="row" id="modeRow"><button class="opt" data-m="cpu">🤖 Computer</button><button class="opt" data-m="pass">📱 Friend<small>on this phone</small></button></div>
+  <div id="cpuBox">
+    <h2>Level</h2>
+    <div class="row" id="levelRow"><button class="opt" data-l="0">Easy</button><button class="opt" data-l="1">Medium</button><button class="opt" data-l="2">Hard</button></div>
+    <h2>You play</h2>
+    <div class="row" id="sideRow"><button class="opt" data-c="1">⚪ White<small>moves first</small></button><button class="opt" data-c="-1">⚫ Black</button></div>
   </div>
-</main>
+  <button class="btn" id="bStart">START ▶</button>
+  <button class="btn dark" id="bBack">Back</button>
+  <p style="opacity:.7;font-size:13px;max-width:360px;line-height:1.45">Captures are compulsory and men capture backwards too. Kings fly any distance along a diagonal.</p>
+</div>
 
-<footer>
-  More games coming soon. Your progress saves on this device.<br>
-  © <span id="yr">2026</span> <b>Tiny Game Hub</b>
-</footer>
+<div class="screen" id="menu">
+  <h2>Paused</h2>
+  <button class="btn" id="bResume">Resume ▶</button>
+  <button class="btn dark" id="bRestart">New game</button>
+  <button class="btn dark" id="bHome">Main menu</button>
+</div>
+
+<div class="screen" id="end">
+  <div id="endBig">🏆</div>
+  <h1 id="endTitle" style="font-size:44px">YOU WIN!</h1>
+  <p id="endText" style="opacity:.85"></p>
+  <button class="btn" id="bAgain">Play again</button>
+  <button class="btn dark" id="bEndHome">Main menu</button>
+</div>
 
 <script>
-  // sprinkle a few twinkling stars
-  (function () {
-    var sky = document.getElementById('sky');
-    for (var i = 0; i < 40; i++) {
-      var s = document.createElement('i');
-      s.style.left = Math.random() * 100 + '%';
-      s.style.top = Math.random() * 100 + '%';
-      s.style.animationDelay = (Math.random() * 3) + 's';
-      var z = 2 + Math.random() * 3; s.style.width = s.style.height = z + 'px';
-      sky.appendChild(s);
+'use strict';
+/* =====================================================================
+   RULES (Russian draughts / shashki)
+   board: 64 squares, row 0 at the top. 1 = white man, 2 = white king,
+   -1 = black man, -2 = black king. White starts at the bottom and moves up.
+   ===================================================================== */
+const DIRS = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+const inB = (r, c) => r >= 0 && r < 8 && c >= 0 && c < 8;
+const sq = (r, c) => r * 8 + c;
+function startBoard() {
+  const b = new Array(64).fill(0);
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) if ((r + c) % 2) { if (r < 3) b[sq(r, c)] = -1; else if (r > 4) b[sq(r, c)] = 1; }
+  return b;
+}
+const lastRow = side => side > 0 ? 0 : 7;
+// all capture sequences for one piece (Turkish rule: captured pieces stay until the end and block)
+function capturesFrom(b, from, side) {
+  const out = [], piece = b[from];
+  const work = b.slice(); work[from] = 0;
+  function dfs(pos, king, path, caps) {
+    const r = Math.floor(pos / 8), c = pos % 8; let any = false;
+    for (const [dr, dc] of DIRS) {
+      if (king) {
+        let rr = r + dr, cc = c + dc;
+        while (inB(rr, cc) && work[sq(rr, cc)] === 0) { rr += dr; cc += dc; }
+        if (!inB(rr, cc)) continue;
+        const t = sq(rr, cc);
+        if (Math.sign(work[t]) !== -side || caps.includes(t)) continue;
+        const lands = []; let lr = rr + dr, lc = cc + dc;
+        while (inB(lr, lc) && work[sq(lr, lc)] === 0) { lands.push(sq(lr, lc)); lr += dr; lc += dc; }
+        if (!lands.length) continue;
+        // if some landing squares allow more captures, you must land on one of those
+        const cont = lands.filter(l => canCapture(l, true, caps.concat(t)));
+        for (const l of (cont.length ? cont : lands)) { any = true; dfs(l, true, path.concat(l), caps.concat(t)); }
+      } else {
+        const r1 = r + dr, c1 = c + dc, r2 = r + 2 * dr, c2 = c + 2 * dc;
+        if (!inB(r2, c2)) continue;
+        const t = sq(r1, c1), l = sq(r2, c2);
+        if (Math.sign(work[t]) !== -side || caps.includes(t) || work[l] !== 0) continue;
+        any = true;
+        const crown = r2 === lastRow(side);
+        dfs(l, crown, path.concat(l), caps.concat(t));        // a man that reaches the far row becomes a king and carries on
+      }
     }
-    document.getElementById('yr').textContent = new Date().getFullYear();
-  })();
+    if (!any && caps.length) out.push({ from, path, caps, crown: king && Math.abs(piece) === 1 });
+  }
+  function canCapture(pos, king, caps) {
+    const r = Math.floor(pos / 8), c = pos % 8;
+    for (const [dr, dc] of DIRS) {
+      let rr = r + dr, cc = c + dc;
+      while (inB(rr, cc) && work[sq(rr, cc)] === 0) { rr += dr; cc += dc; }
+      if (!inB(rr, cc)) continue;
+      const t = sq(rr, cc);
+      if (Math.sign(work[t]) !== -side || caps.includes(t)) continue;
+      if (inB(rr + dr, cc + dc) && work[sq(rr + dr, cc + dc)] === 0) return true;
+    }
+    return false;
+  }
+  dfs(from, Math.abs(piece) === 2, [], []);
+  return out;
+}
+function genMoves(b, side) {
+  let caps = [];
+  for (let i = 0; i < 64; i++) if (Math.sign(b[i]) === side) caps = caps.concat(capturesFrom(b, i, side));
+  if (caps.length) return caps;
+  const moves = [];
+  for (let i = 0; i < 64; i++) {
+    if (Math.sign(b[i]) !== side) continue;
+    const r = Math.floor(i / 8), c = i % 8, king = Math.abs(b[i]) === 2;
+    for (const [dr, dc] of DIRS) {
+      if (!king) {
+        if (dr !== (side > 0 ? -1 : 1)) continue;
+        const rr = r + dr, cc = c + dc;
+        if (inB(rr, cc) && b[sq(rr, cc)] === 0) moves.push({ from: i, path: [sq(rr, cc)], caps: [], crown: rr === lastRow(side) });
+      } else {
+        let rr = r + dr, cc = c + dc;
+        while (inB(rr, cc) && b[sq(rr, cc)] === 0) { moves.push({ from: i, path: [sq(rr, cc)], caps: [], crown: false }); rr += dr; cc += dc; }
+      }
+    }
+  }
+  return moves;
+}
+function applyMove(b, m) {
+  const n = b.slice(), p = n[m.from], to = m.path[m.path.length - 1];
+  n[m.from] = 0; for (const c of m.caps) n[c] = 0;
+  n[to] = m.crown || (Math.abs(p) === 1 && Math.floor(to / 8) === lastRow(Math.sign(p))) ? 2 * Math.sign(p) : p;
+  return n;
+}
+
+/* ---------------- computer player: alpha-beta search */
+function evaluate(b, side) {
+  let s = 0;
+  for (let i = 0; i < 64; i++) {
+    const p = b[i]; if (!p) continue;
+    const r = Math.floor(i / 8), c = i % 8, own = Math.sign(p);
+    let v = Math.abs(p) === 2 ? 330 : 100;
+    if (Math.abs(p) === 1) { v += (own > 0 ? 7 - r : r) * 4; if ((own > 0 && r === 7) || (own < 0 && r === 0)) v += 6; }   // advance, keep back row
+    if (c >= 2 && c <= 5 && r >= 2 && r <= 5) v += 6;
+    if (Math.abs(p) === 2 && (r + c === 7 || r === c)) v += 12;                                                           // kings like long diagonals
+    s += own * v;
+  }
+  return s * side;
+}
+let nodes = 0;
+function search(b, side, depth, alpha, beta) {
+  const moves = genMoves(b, side);
+  if (!moves.length) return -100000 - depth;
+  if (depth <= 0 && !moves[0].caps.length) return evaluate(b, side);
+  if (depth <= -6) return evaluate(b, side);
+  nodes++;
+  moves.sort((a, c) => c.caps.length - a.caps.length);
+  for (const m of moves) {
+    const v = -search(applyMove(b, m), -side, depth - 1, -beta, -alpha);
+    if (v > alpha) alpha = v; if (alpha >= beta) break;
+    if (nodes > 400000) break;
+  }
+  return alpha;
+}
+function bestMove(b, side, level) {
+  const moves = genMoves(b, side); if (moves.length === 1) return moves[0];
+  const depth = [2, 4, 7][level]; nodes = 0;
+  let best = moves[0], bv = -1e9;
+  const scored = moves.map(m => ({ m, v: -search(applyMove(b, m), -side, depth - 1, -1e9, 1e9) + (Math.random() - .5) * [70, 12, 0][level] }));
+  for (const s of scored) if (s.v > bv) { bv = s.v; best = s.m; }
+  if (level === 0 && Math.random() < .2) best = moves[Math.random() * moves.length | 0];
+  return best;
+}
+
+/* =====================================================================
+   PRESENTATION
+   ===================================================================== */
+const $ = q => document.querySelector(q), cv = $('#cv'), mainCx = cv.getContext('2d');
+let cx = mainCx;
+const KEY = 'shashki:v1';
+let pref = { mode: 'cpu', level: 1, side: 1, sound: true, view: '3d' };
+try { Object.assign(pref, JSON.parse(localStorage.getItem(KEY + ':pref') || '{}')); } catch (e) { }
+const savePref = () => { try { localStorage.setItem(KEY + ':pref', JSON.stringify(pref)); } catch (e) { } };
+const IMG = {}, ART = {};
+['light', 'dark', 'frame', 'bg', 'title'].forEach(n => { const im = new Image(); im.onload = () => { ART[n] = true; if (n === 'bg') document.body.classList.add('hasbg'); if (n === 'title') $('#title').classList.remove('noart'); if (n !== 'bg' && n !== 'title') buildBoard(); }; im.src = 'art/' + n + '.webp'; IMG[n] = im; });
+
+/* ---------------- layout: table view like a real board on a table */
+const PHI = .98, DCAM = 3.4, CS = Math.cos(PHI), SN = Math.sin(PHI);
+let W = 0, H = 0, DPR = 1, ROT = 0, VIEW3D = pref.view !== 'flat', F = 1, OX = 0, OY = 0, BX = 0, BY = 0, BW = 0, BH = 0;
+const FR = .065, CELL = (1 - 2 * FR) / 8;                    // frame width and square size, as parts of the board
+const flat = document.createElement('canvas'), view = document.createElement('canvas');
+const pz = z => DCAM - z * CS;
+function rotUV(u, v) { return ROT ? [1 - u, 1 - v] : [u, v]; }
+function P(u, v) {
+  [u, v] = rotUV(u, v);
+  if (!VIEW3D) return { x: OX + u * F, y: OY + v * F, k: F };
+  const x = 2 * u - 1, z = 2 * v - 1, d = pz(z);
+  return { x: OX + F * x / d, y: OY + F * (z * SN / d + SN / (DCAM + CS)), k: 2 * F / d };
+}
+const cellP = i => P(FR + (i % 8 + .5) * CELL, FR + (Math.floor(i / 8) + .5) * CELL);
+function resize() {
+  DPR = Math.min(2.5, devicePixelRatio || 1); W = innerWidth; H = innerHeight;
+  cv.width = W * DPR; cv.height = H * DPR; mainCx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const portrait = H > W * 1.1, top = portrait ? 116 : 60, bot = portrait ? 84 : 56;
+  const aw = W - (portrait ? 4 : 16), ah = H - top - bot;
+  if (VIEW3D) {
+    const w0 = 2 / pz(1), h0 = SN / pz(1) + SN / (DCAM + CS) + .05;
+    F = Math.min(aw / w0, ah / h0); BW = w0 * F; BH = h0 * F; BX = (W - BW) / 2; BY = top + (ah - BH) / 2; OX = BX + BW / 2; OY = BY;
+  } else { F = Math.min(aw, ah); BW = BH = F; BX = (W - F) / 2; BY = top + (ah - F) / 2; OX = BX; OY = BY; }
+  buildBoard();
+}
+addEventListener('resize', resize);
+function buildBoard() {
+  const N = 1024; flat.width = flat.height = N; const f = flat.getContext('2d');
+  // frame
+  if (ART.frame) { const p = f.createPattern(IMG.frame, 'repeat'); f.fillStyle = p; } else { const g = f.createLinearGradient(0, 0, N, N); g.addColorStop(0, '#7a2e18'); g.addColorStop(.5, '#4a160a'); g.addColorStop(1, '#2a0a04'); f.fillStyle = g; }
+  f.beginPath(); f.roundRect ? f.roundRect(0, 0, N, N, 40) : f.rect(0, 0, N, N); f.fill();
+  const gl = f.createLinearGradient(0, 0, 0, N); gl.addColorStop(0, 'rgba(255,255,255,.28)'); gl.addColorStop(.12, 'rgba(255,255,255,0)'); gl.addColorStop(1, 'rgba(0,0,0,.25)');
+  f.fillStyle = gl; f.fill();
+  const o = FR * N, cs = CELL * N;
+  f.fillStyle = '#d9a63a'; f.fillRect(o - 8, o - 8, cs * 8 + 16, cs * 8 + 16);
+  f.fillStyle = '#2a1206'; f.fillRect(o - 3, o - 3, cs * 8 + 6, cs * 8 + 6);
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+    const dark = (r + c) % 2, x = o + c * cs, y = o + r * cs, key = dark ? 'dark' : 'light';
+    if (ART[key]) { f.save(); f.beginPath(); f.rect(x, y, cs, cs); f.clip(); f.drawImage(IMG[key], x - (c * 37 % 50), y - (r * 53 % 50), cs + 60, cs + 60); if (dark) { f.globalCompositeOperation = 'screen'; f.fillStyle = 'rgba(120,52,22,.55)'; f.fillRect(x, y, cs, cs); f.globalCompositeOperation = 'source-over'; } f.restore(); }
+    else { const g = f.createLinearGradient(x, y, x + cs, y + cs); if (dark) { g.addColorStop(0, '#6b3e22'); g.addColorStop(1, '#3e200f'); } else { g.addColorStop(0, '#f6dfae'); g.addColorStop(1, '#ddb878'); } f.fillStyle = g; f.fillRect(x, y, cs, cs); }
+  }
+  const sh = f.createLinearGradient(o, o, o + cs * 8, o + cs * 8); sh.addColorStop(0, 'rgba(255,255,255,.16)'); sh.addColorStop(.4, 'rgba(255,255,255,0)'); sh.addColorStop(1, 'rgba(0,0,0,.12)');
+  f.fillStyle = sh; f.fillRect(o, o, cs * 8, cs * 8);
+  if (ROT) { const t = document.createElement('canvas'); t.width = t.height = N; const tg = t.getContext('2d'); tg.translate(N, N); tg.rotate(Math.PI); tg.drawImage(flat, 0, 0); f.clearRect(0, 0, N, N); f.drawImage(t, 0, 0); }
+  f.fillStyle = 'rgba(255,230,170,.85)'; f.font = `700 ${Math.round(N * .028)}px Georgia`; f.textAlign = 'center'; f.textBaseline = 'middle';
+  for (let k = 0; k < 8; k++) {
+    const L = 'abcdefgh'[ROT ? 7 - k : k], Nn = String(ROT ? k + 1 : 8 - k);
+    f.fillText(L, o + (k + .5) * cs, N - o / 2); f.fillText(Nn, o / 2, o + (k + .5) * cs);
+  }
+  if (!VIEW3D) { view.width = view.height = 1; return; }
+  view.width = Math.ceil(BW * DPR); view.height = Math.ceil(BH * DPR);
+  const g = view.getContext('2d'); g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const nl = P0(-1, 1), nr = P0(1, 1), edge = F * .035;
+  const eg = g.createLinearGradient(0, nl.y, 0, nl.y + edge); eg.addColorStop(0, '#3a140a'); eg.addColorStop(1, '#120402');
+  g.fillStyle = eg; g.beginPath(); g.moveTo(nl.x, nl.y - 2); g.lineTo(nr.x, nr.y - 2); g.lineTo(nr.x, nr.y + edge); g.lineTo(nl.x, nl.y + edge); g.closePath(); g.fill();
+  const yTop = P0(0, -1).y, rows = Math.ceil((nl.y - yTop) * DPR);
+  for (let k = 0; k < rows; k++) {
+    const ys = yTop + (k + .5) / DPR, Y = ys / F - SN / (DCAM + CS), z = Y * DCAM / (SN + Y * CS), d = pz(z);
+    const v = (z + 1) / 2; if (v < 0 || v > 1) continue;
+    const half = F / d, sy = Math.min(N - 1, Math.max(0, v * N));
+    g.drawImage(flat, 0, sy, N, 1, BW / 2 - half, yTop + k / DPR, half * 2, 1.6 / DPR);
+  }
+}
+function P0(x, z) { const d = pz(z); return { x: BW / 2 + F * x / d, y: F * (z * SN / d + SN / (DCAM + CS)) }; }
+
+/* ---------------- shiny pieces, drawn in code */
+function drawPiece(x, y, r, side, king, opts = {}) {
+  const ratio = VIEW3D ? .58 : 1, th = VIEW3D ? r * .3 : 0, ry = r * ratio;
+  const C = side > 0 ? { top: ['#ffffff', '#f3ecdf', '#cfc3aa'], side: ['#d8ccb2', '#a8987a'], groove: 'rgba(150,130,95,.55)' }
+    : { top: ['#6a6a78', '#24242c', '#08080a'], side: ['#2a2a32', '#060608'], groove: 'rgba(0,0,0,.7)' };
+  cx.save();
+  if (opts.alpha !== undefined) cx.globalAlpha = opts.alpha;
+  // soft contact shadow
+  cx.fillStyle = 'rgba(0,0,0,.35)'; cx.beginPath(); cx.ellipse(x + r * .06, y + th + ry * .12, r * 1.02, ry * 1.02, 0, 0, 7); cx.fill();
+  const layers = king ? 2 : 1;
+  for (let k = 0; k < layers; k++) {
+    const yy = y - k * (th || r * .16);
+    if (th) {   // the edge of the disc
+      const sg = cx.createLinearGradient(x - r, 0, x + r, 0); sg.addColorStop(0, C.side[1]); sg.addColorStop(.35, C.side[0]); sg.addColorStop(1, C.side[1]);
+      cx.fillStyle = sg; cx.beginPath(); cx.ellipse(x, yy + th, r, ry, 0, 0, Math.PI); cx.lineTo(x - r, yy); cx.ellipse(x, yy, r, ry, 0, Math.PI, 0, true); cx.closePath(); cx.fill();
+    } else if (king) {
+      cx.strokeStyle = C.groove; cx.lineWidth = r * .08; cx.beginPath(); cx.arc(x, yy, r * 1.0, 0, 7); cx.stroke();
+    }
+    const tg = cx.createRadialGradient(x - r * .35, yy - ry * .45, r * .05, x, yy, r * 1.05);
+    tg.addColorStop(0, C.top[0]); tg.addColorStop(.55, C.top[1]); tg.addColorStop(1, C.top[2]);
+    cx.fillStyle = tg; cx.beginPath(); cx.ellipse(x, yy, r, ry, 0, 0, 7); cx.fill();
+    cx.strokeStyle = C.groove; cx.lineWidth = Math.max(1, r * .05);
+    for (const f of [.78, .52]) { cx.beginPath(); cx.ellipse(x, yy, r * f, ry * f, 0, 0, 7); cx.stroke(); }
+    cx.fillStyle = 'rgba(255,255,255,' + (side > 0 ? .7 : .35) + ')';
+    cx.beginPath(); cx.ellipse(x - r * .38, yy - ry * .5, r * .28, ry * .14 / ratio * (VIEW3D ? .7 : 1), -.5, 0, 7); cx.fill();
+  }
+  if (king) {   // gold crown on top
+    const yy = y - (th || r * .16), s = r * .42;
+    cx.translate(x, yy); cx.scale(1, ratio);
+    const gg = cx.createLinearGradient(0, -s, 0, s); gg.addColorStop(0, '#fff3b0'); gg.addColorStop(.5, '#f2c034'); gg.addColorStop(1, '#a8700a');
+    cx.fillStyle = gg; cx.strokeStyle = '#7a4a00'; cx.lineWidth = s * .08;
+    cx.beginPath(); cx.moveTo(-s, s * .55); cx.lineTo(-s, -s * .35); cx.lineTo(-s * .5, s * .05); cx.lineTo(0, -s * .65); cx.lineTo(s * .5, s * .05); cx.lineTo(s, -s * .35); cx.lineTo(s, s * .55); cx.closePath(); cx.fill(); cx.stroke();
+    for (const px of [-s, 0, s]) { cx.beginPath(); cx.arc(px, px ? -s * .42 : -s * .72, s * .13, 0, 7); cx.fill(); }
+  }
+  cx.restore();
+  if (opts.ring) {
+    const t = performance.now() / 300;
+    cx.strokeStyle = opts.ring; cx.lineWidth = Math.max(2, r * .12); cx.globalAlpha = .6 + .4 * Math.sin(t * 2);
+    cx.beginPath(); cx.ellipse(x, y + th * .5, r * 1.18, ry * 1.18 + th * .4, 0, 0, 7); cx.stroke(); cx.globalAlpha = 1;
+  }
+}
+
+/* ---------------- sound (wood clacks, made in code) */
+let AC = null, NB = null;
+function ac() { if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); if (!NB) { NB = AC.createBuffer(1, AC.sampleRate, AC.sampleRate); const d = NB.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; } return AC; }
+function tone(t, f, d, v, type = 'sine', slide = 0) { const o = AC.createOscillator(), g = AC.createGain(); o.type = type; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(f * slide, t + d); g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(v, t + .004); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + d + .05); }
+function nz(t, d, v, f, q) { const s = AC.createBufferSource(), fl = AC.createBiquadFilter(), g = AC.createGain(); s.buffer = NB; fl.type = 'bandpass'; fl.frequency.value = f; fl.Q.value = q; g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(v, t + .002); g.gain.exponentialRampToValueAtTime(.0001, t + d); s.connect(fl); fl.connect(g); g.connect(AC.destination); s.start(t, Math.random() * .5); s.stop(t + d + .05); }
+function snd(kind) {
+  if (!pref.sound) return;
+  try {
+    ac(); const t = AC.currentTime + .01;
+    if (kind === 'clack') { nz(t, .04, .5, 1700 + Math.random() * 300, 4); tone(t, 210, .1, .3); }
+    if (kind === 'lift') { nz(t, .03, .2, 2500, 3); }
+    if (kind === 'take') { tone(t, 110, .3, .35, 'sine', .6); nz(t, .25, .2, 900, 1); }
+    if (kind === 'crown') [784, 1046, 1318].forEach((f, k) => tone(t + k * .1, f, .9, .1, 'triangle'));
+    if (kind === 'win') [523, 659, 784, 1046].forEach((f, k) => tone(t + k * .16, f, 1.4, .12, 'triangle'));
+    if (kind === 'lose') [392, 330, 262].forEach((f, k) => tone(t + k * .2, f, .7, .1, 'triangle'));
+  } catch (e) { }
+}
+
+/* ---------------- game state */
+let G = null, sel = -1, moves = [], anim = null, parts = [], toast = '', toastT = 0, T = 0, thinking = false, hist = [], lastMove = null;
+function newGame() {
+  const seats = pref.mode === 'pass' ? { 1: 'human', '-1': 'human' } : { [pref.side]: 'human', [-pref.side]: 'cpu' };
+  G = { b: startBoard(), side: 1, seats, level: pref.level, quiet: 0, over: false };
+  ROT = pref.mode === 'cpu' && pref.side === -1 ? 1 : 0;
+  hist = []; lastMove = null; sel = -1; anim = null; parts = [];
+  startTurn(); resize(); show(null); persist();
+}
+function persist() { try { if (G && !G.over) localStorage.setItem(KEY + ':game', JSON.stringify({ G, ROT, lastMove })); else localStorage.removeItem(KEY + ':game'); } catch (e) { } }
+function startTurn() {
+  moves = genMoves(G.b, G.side); sel = -1;
+  if (!moves.length) { finish(-G.side); return; }
+  if (G.quiet >= 30) { finish(0); return; }
+  const human = G.seats[G.side] === 'human';
+  if (human && moves[0].caps.length) say('You must capture!');
+  else if (human && pref.mode === 'pass') say((G.side > 0 ? 'White' : 'Black') + ' to move');
+  if (!human) { thinking = true; setTimeout(cpuMove, 350); }
+}
+function cpuMove() {
+  if (!G || G.over) return;
+  const m = bestMove(G.b, G.side, G.level); thinking = false; play(m);
+}
+function say(t, d = 1.6) { toast = t; toastT = d; }
+function play(m) {
+  hist.push({ b: G.b.slice(), side: G.side, quiet: G.quiet, lastMove });
+  const piece = G.b[m.from];
+  anim = { m, piece, k: 0, t: 0, pts: [m.from].concat(m.path) };
+  sel = -1; snd('lift');
+}
+function animDone() {
+  const m = anim.m, piece = anim.piece; anim = null;
+  const wasMan = Math.abs(piece) === 1;
+  G.b = applyMove(G.b, m); lastMove = m;
+  const to = m.path[m.path.length - 1];
+  if (m.caps.length) { snd('take'); for (const c of m.caps) { const p = cellP(c); burst(p.x, p.y, piece > 0 ? '#ffffff' : '#ffd36a'); } }
+  if (wasMan && Math.abs(G.b[to]) === 2) { snd('crown'); const p = cellP(to); burst(p.x, p.y - 10, '#ffd23a', 26); say('Crowned king!'); }
+  G.quiet = m.caps.length || wasMan ? 0 : G.quiet + 1;
+  G.side = -G.side; persist();
+  startTurn();
+}
+function finish(winner) {
+  G.over = true; persist();
+  const humans = Object.keys(G.seats).filter(k => G.seats[k] === 'human').map(Number);
+  setTimeout(() => {
+    let title, big, txt;
+    if (winner === 0) { title = 'DRAW'; big = '🤝'; txt = 'No captures for 15 moves each – the game is a draw.'; snd('lose'); }
+    else if (humans.length === 2) { title = (winner > 0 ? 'WHITE' : 'BLACK') + ' WINS!'; big = '🏆'; txt = 'Well played, both of you.'; snd('win'); }
+    else if (humans.includes(winner)) { title = 'YOU WIN!'; big = '🏆'; txt = ['Easy', 'Medium', 'Hard'][G.level] + ' computer beaten!'; snd('win'); confetti(); }
+    else { title = 'YOU LOST'; big = '😔'; txt = 'The computer won this time. Try again!'; snd('lose'); }
+    $('#endTitle').textContent = title; $('#endBig').textContent = big; $('#endText').textContent = txt; show('end');
+  }, 700);
+}
+
+/* ---------------- input */
+function squareAt(x, y) {
+  let best = -1, bd = 1e9;
+  for (let i = 0; i < 64; i++) { if (!((Math.floor(i / 8) + i % 8) % 2)) continue; const p = cellP(i), d = Math.hypot(p.x - x, (p.y - y) / (VIEW3D ? .7 : 1)); if (d < bd) { bd = d; best = i; } }
+  const p = cellP(best); return bd < p.k * CELL * .75 ? best : -1;
+}
+cv.addEventListener('pointerdown', e => {
+  if (!G || G.over || anim || $('.screen.show') || G.seats[G.side] !== 'human') return;
+  ac();
+  const i = squareAt(e.clientX, e.clientY); if (i < 0) return;
+  if (sel >= 0) {
+    const opts = moves.filter(m => m.from === sel && m.path[m.path.length - 1] === i);
+    if (opts.length) { opts.sort((a, b) => b.caps.length - a.caps.length); play(opts[0]); return; }
+  }
+  if (moves.some(m => m.from === i)) { sel = i; snd('lift'); }
+  else if (Math.sign(G.b[i]) === G.side) { say(moves[0].caps.length ? 'You must capture!' : 'That piece can’t move'); sel = -1; }
+  else sel = -1;
+});
+
+/* ---------------- effects */
+function burst(x, y, c, n = 16) { for (let k = 0; k < n; k++) { const a = Math.random() * 7, v = 80 + Math.random() * 200; parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 150, life: .8 + Math.random() * .4, c, s: 3 + Math.random() * 3 }); } }
+function confetti() { for (let k = 0; k < 120; k++) parts.push({ x: Math.random() * W, y: -20 - Math.random() * H * .4, vx: (Math.random() - .5) * 100, vy: 80 + Math.random() * 120, life: 4, c: ['#ffd23a', '#fff', '#e8b440', '#c0392b'][k % 4], s: 4 + Math.random() * 4, rect: true }); }
+
+/* ---------------- draw */
+function draw(dt) {
+  cx.clearRect(0, 0, W, H);
+  if (!G) return;
+  if (VIEW3D) cx.drawImage(view, BX, BY, BW, BH); else cx.drawImage(flat, BX, BY, BW, BH);
+  const cs = (p) => p.k * CELL;
+  // last move and selection marks on the board
+  const mark = (i, col) => { const p = cellP(i), r = cs(p) * .5; cx.fillStyle = col; cx.beginPath(); cx.ellipse(p.x, p.y, r, r * (VIEW3D ? .58 : 1), 0, 0, 7); cx.fill(); };
+  if (lastMove && !anim) { mark(lastMove.from, 'rgba(255,210,80,.25)'); mark(lastMove.path[lastMove.path.length - 1], 'rgba(255,210,80,.35)'); }
+  const human = G.seats[G.side] === 'human' && !anim && !G.over;
+  if (human && sel >= 0) for (const m of moves.filter(m => m.from === sel)) {
+    const to = m.path[m.path.length - 1], p = cellP(to), r = cs(p) * .2;
+    cx.fillStyle = m.caps.length ? 'rgba(255,80,60,.85)' : 'rgba(120,255,140,.85)'; cx.beginPath(); cx.ellipse(p.x, p.y, r, r * (VIEW3D ? .58 : 1), 0, 0, 7); cx.fill();
+    if (m.path.length > 1) { cx.strokeStyle = 'rgba(255,120,80,.6)'; cx.lineWidth = 3; cx.setLineDash([6, 6]); cx.beginPath(); const a = cellP(sel); cx.moveTo(a.x, a.y); for (const s of m.path) { const q = cellP(s); cx.lineTo(q.x, q.y); } cx.stroke(); cx.setLineDash([]); }
+  }
+  // pieces, far to near
+  const list = [];
+  for (let i = 0; i < 64; i++) {
+    const p = G.b[i]; if (!p) continue;
+    if (anim && i === anim.m.from) continue;
+    const at = cellP(i), capd = anim && anim.m.caps.includes(i);
+    list.push({ x: at.x, y: at.y, r: cs(at) * .44, side: Math.sign(p), king: Math.abs(p) === 2, ring: human && (i === sel ? '#ffd23a' : (sel < 0 && moves[0] && moves[0].caps.length && moves.some(m => m.from === i)) ? '#ff5a3a' : null), alpha: capd && anim.hold !== undefined ? Math.max(0, 1 - anim.hold * 2.5) : undefined });
+  }
+  if (anim) {
+    const a = anim, i0 = a.pts[a.k], i1 = a.pts[a.k + 1];
+    const A = cellP(i0), Bp = cellP(i1), e = Math.min(1, a.t), hop = a.m.caps.length ? Math.sin(e * Math.PI) * cs(A) * .6 : Math.sin(e * Math.PI) * cs(A) * .15;
+    const crownNow = Math.abs(a.piece) === 2 || a.pts.slice(1, a.k + 2).some(s => Math.floor(s / 8) === lastRow(Math.sign(a.piece)));
+    list.push({ x: A.x + (Bp.x - A.x) * e, y: A.y + (Bp.y - A.y) * e - hop, r: (cs(A) + (cs(Bp) - cs(A)) * e) * .44, side: Math.sign(a.piece), king: crownNow, top: true });
+  }
+  list.sort((a, b) => (a.top ? 1 : 0) - (b.top ? 1 : 0) || a.y - b.y);
+  for (const p of list) drawPiece(p.x, p.y, p.r, p.side, p.king, { ring: p.ring, alpha: p.alpha });
+  // particles
+  for (const p of parts) { cx.globalAlpha = Math.min(1, p.life * 2); cx.fillStyle = p.c; if (p.rect) cx.fillRect(p.x, p.y, p.s, p.s * .5); else { cx.beginPath(); cx.arc(p.x, p.y, p.s / 2, 0, 7); cx.fill(); } }
+  cx.globalAlpha = 1;
+  drawBars();
+}
+function drawBars() {
+  const portrait = H > W * 1.1, top = portrait ? 62 : 8;
+  const count = (s, king) => G.b.filter(p => Math.sign(p) === s && (king === undefined || (Math.abs(p) === 2) === king)).length;
+  const label = s => pref.mode === 'pass' ? (s > 0 ? 'White' : 'Black') : (G.seats[s] === 'human' ? 'You' : ['Easy', 'Medium', 'Hard'][G.level] + ' computer');
+  const far = ROT ? 1 : -1, near = -far;
+  const bar = (s, y) => {
+    const active = G.side === s && !G.over, w = Math.min(W - 24, 360), x = (W - w) / 2;
+    cx.fillStyle = active ? 'rgba(242,201,106,.25)' : 'rgba(0,0,0,.35)'; cx.beginPath(); cx.roundRect ? cx.roundRect(x, y, w, 44, 14) : cx.rect(x, y, w, 44); cx.fill();
+    if (active) { cx.strokeStyle = '#f2c96a'; cx.lineWidth = 2; cx.stroke(); }
+    const keep = VIEW3D; VIEW3D = false; drawPiece(x + 26, y + 22, 13, s, false); VIEW3D = keep;
+    cx.fillStyle = '#fff'; cx.font = '800 15px system-ui'; cx.textAlign = 'left'; cx.textBaseline = 'middle';
+    cx.fillText(label(s) + (active ? (thinking ? ' · thinking…' : ' · to move') : ''), x + 48, y + 22);
+    cx.textAlign = 'right'; cx.font = '700 13px system-ui'; cx.fillStyle = 'rgba(255,255,255,.8)';
+    const k = count(s, true); cx.fillText(count(s) + ' pieces' + (k ? ' · ' + k + ' 👑' : ''), x + w - 12, y + 22);
+  };
+  bar(far, top);
+  bar(near, H - (portrait ? 70 : 50));
+  if (toastT > 0 && toast) {
+    cx.globalAlpha = Math.min(1, toastT * 3); cx.font = '800 16px system-ui'; const w = cx.measureText(toast).width + 30, y = BY + BH * .45;
+    cx.fillStyle = 'rgba(20,10,4,.85)'; cx.beginPath(); cx.roundRect ? cx.roundRect(W / 2 - w / 2, y - 20, w, 40, 20) : cx.rect(W / 2 - w / 2, y - 20, w, 40); cx.fill();
+    cx.fillStyle = '#ffe9a8'; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(toast, W / 2, y); cx.globalAlpha = 1;
+  }
+}
+function update(dt) {
+  T += dt; if (toastT > 0) toastT -= dt;
+  for (const p of parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += (p.rect ? 30 : 500) * dt; p.life -= dt; } parts = parts.filter(p => p.life > 0 && p.y < H + 20);
+  if (anim) {
+    const a = anim, n = a.pts.length - 1;
+    if (a.hold !== undefined) { a.hold += dt; if (a.hold >= (a.m.caps.length ? .4 : .05)) animDone(); }
+    else {
+      a.t += dt / (a.m.caps.length ? .26 : .22);
+      if (a.t >= 1) { snd('clack'); if (a.k < n - 1) { a.k++; a.t = 0; } else { a.t = 1; a.hold = 0; } }
+    }
+  }
+}
+
+/* ---------------- screens */
+function show(id) { document.querySelectorAll('.screen').forEach(s => s.classList.toggle('show', s.id === id)); document.body.dataset.s = id || 'play'; }
+function setupUI() {
+  document.querySelectorAll('#modeRow .opt').forEach(b => b.classList.toggle('on', b.dataset.m === pref.mode));
+  document.querySelectorAll('#levelRow .opt').forEach(b => b.classList.toggle('on', +b.dataset.l === pref.level));
+  document.querySelectorAll('#sideRow .opt').forEach(b => b.classList.toggle('on', +b.dataset.c === pref.side));
+  $('#cpuBox').style.display = pref.mode === 'cpu' ? '' : 'none';
+}
+$('#setup').addEventListener('click', e => { const b = e.target.closest('.opt'); if (!b) return; if (b.dataset.m) pref.mode = b.dataset.m; if (b.dataset.l) pref.level = +b.dataset.l; if (b.dataset.c) pref.side = +b.dataset.c; savePref(); setupUI(); });
+function savedGame() { try { return JSON.parse(localStorage.getItem(KEY + ':game') || 'null'); } catch (e) { return null; } }
+function refreshTitle() { $('#bContinue').style.display = savedGame() ? '' : 'none'; }
+$('#bPlay').onclick = () => { ac(); setupUI(); show('setup'); };
+$('#bContinue').onclick = () => { const s = savedGame(); if (!s) return; G = s.G; ROT = s.ROT; lastMove = s.lastMove; hist = []; anim = null; show(null); resize(); startTurn(); };
+$('#bBack').onclick = () => { refreshTitle(); show('title'); };
+$('#bStart').onclick = newGame;
+$('#bMenu').onclick = () => show('menu');
+$('#bResume').onclick = () => show(null);
+$('#bRestart').onclick = newGame;
+$('#bAgain').onclick = newGame;
+$('#bHome').onclick = $('#bEndHome').onclick = () => { G = null; refreshTitle(); show('title'); };
+$('#bUndo').onclick = () => {
+  if (!G || anim || thinking || !hist.length) return;
+  // undo back to your own last turn (skips the computer's reply)
+  let h = hist.pop(); while (hist.length && G.seats[h.side] !== 'human') h = hist.pop();
+  if (G.seats[h.side] !== 'human') return;
+  G.b = h.b; G.side = h.side; G.quiet = h.quiet; lastMove = h.lastMove; G.over = false; startTurn(); persist();
+};
+$('#bSound').onclick = () => { pref.sound = !pref.sound; savePref(); $('#bSound').textContent = pref.sound ? '🔊' : '🔇'; };
+$('#bSound').textContent = pref.sound ? '🔊' : '🔇';
+$('#bView').onclick = () => { VIEW3D = !VIEW3D; pref.view = VIEW3D ? '3d' : 'flat'; savePref(); $('#bView').textContent = VIEW3D ? '2D' : '3D'; resize(); };
+$('#bView').textContent = VIEW3D ? '2D' : '3D';
+
+// animated title picture until the ChatGPT title art arrives
+const tcv = $('#titleArt'), tcx = tcv.getContext('2d');
+function drawTitle() {
+  if (ART.title) return;
+  cx = tcx; tcx.clearRect(0, 0, 640, 640);
+  const keep = VIEW3D; VIEW3D = true;
+  const ps = [[180, 360, 1, false], [320, 330, -1, false], [460, 360, 1, false], [250, 470, -1, false], [390, 470, 1, true]];
+  ps.forEach(([x, y, s, k], i) => drawPiece(x, y + Math.sin(T * 2 + i) * 8, 70, s, k));
+  VIEW3D = keep; cx = mainCx;
+}
+
+/* ---------------- loop */
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  if (!$('#menu').classList.contains('show')) update(dt);
+  draw(dt);
+  if ($('#title').classList.contains('show')) drawTitle();
+  requestAnimationFrame(loop);
+}
+resize(); refreshTitle(); requestAnimationFrame(loop);
+window.__ck = { get G() { return G; }, get moves() { return moves; }, genMoves, applyMove, bestMove, startBoard, newGame, pref, play, get anim() { return anim; }, cellP, capturesFrom };
 </script>
 </body>
 </html>
