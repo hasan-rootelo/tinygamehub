@@ -28,8 +28,8 @@ h2 { margin:8px 0 6px; font-size:14px; font-weight:800; letter-spacing:1px; text
 #title { background:#2a170c url(art/title.webp) center/cover no-repeat; justify-content:space-between; padding-bottom:max(40px, env(safe-area-inset-bottom)); }
 #title h1 { margin-top:7vh; }
 #title.noart { background:radial-gradient(ellipse at 50% 40%, #7a4a22, #1c0d04 75%); justify-content:center; }
-#titleArt { width:min(70vw, 320px); aspect-ratio:1; }
-@media (orientation:landscape) { #title:not(.noart) { background:url(art/title.webp) center/contain no-repeat, radial-gradient(ellipse at 50% 40%, #6a3d1f, #160a04); } }
+#titleArt { width:min(70vw, 320px); aspect-ratio:1; } #title:not(.noart) #titleArt { display:none; }
+@media (orientation:landscape) { #title:not(.noart) { background-position:center 74%; } #title:not(.noart)::before { content:''; position:absolute; inset:0; background:linear-gradient(rgba(10,4,0,.55), rgba(10,4,0,0) 45%, rgba(10,4,0,0) 70%, rgba(10,4,0,.5)); pointer-events:none; } #title > * { position:relative; } }
 #topbar { position:fixed; top:max(8px, env(safe-area-inset-top)); left:8px; right:8px; display:none; justify-content:space-between; z-index:3; pointer-events:none; }
 #topbar button { pointer-events:auto; height:42px; min-width:42px; padding:0 10px; border-radius:14px; border:0; background:rgba(0,0,0,.4); color:#fff; font:800 15px system-ui; cursor:pointer; }
 body[data-s="play"] #topbar { display:flex; }
