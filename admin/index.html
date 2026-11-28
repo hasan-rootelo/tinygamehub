@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Tiny Game Hub · Dashboard</title>
+<style>
+  :root {
+    --bg: #0f1220; --panel: #181c2e; --panel2: #1f2439; --line: #2a3050;
+    --text: #e9ecf7; --muted: #9aa3c2; --accent: #ffb547; --accent2: #5ec8ff; --good: #6ee7a8;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 16px 24px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+  h1 { margin: 0; font-size: 20px; }
+  h1 span { color: var(--accent); }
+  h2 { margin: 0 0 12px; font-size: 16px; color: var(--muted); font-weight: 600; }
+  main { max-width: 1200px; margin: 0 auto; padding: 20px 24px 60px; }
+  button { font: inherit; cursor: pointer; border-radius: 999px; border: 1px solid var(--line);
+    background: var(--panel2); color: var(--text); padding: 7px 16px; }
+  button:hover { border-color: var(--accent2); }
+  button.on { background: var(--accent); color: #1b1300; border-color: var(--accent); font-weight: 600; }
+  button.big { padding: 12px 26px; font-size: 16px; background: var(--accent); color: #1b1300; border: 0; font-weight: 600; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 18px 0; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+  .tile .v { font-size: 28px; font-weight: 700; margin-top: 4px; }
+  .tile .l { color: var(--muted); font-size: 13px; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 16px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+  .bar { height: 8px; border-radius: 4px; background: var(--accent2); min-width: 2px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .center { text-align: center; padding: 80px 20px; }
+  #chart svg { width: 100%; height: 200px; display: block; }
+  .empty { color: var(--muted); padding: 12px 0; }
+  label.toggle { display: inline-flex; gap: 8px; align-items: center; color: var(--muted); font-size: 14px; cursor: pointer; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Tiny Game Hub · <span>Dashboard</span></h1>
+  <div class="row" id="who"></div>
+</header>
+
+<main>
+  <div id="login" class="center" style="display:none">
+    <p>Sign in with your admin Google account to see your stats.</p>
+    <button class="big" id="signin">Sign in with Google</button>
+    <p class="muted" id="loginMsg"></p>
+  </div>
+
+  <div id="dash" style="display:none">
+    <div class="row" style="justify-content:space-between">
+      <div class="row" id="ranges">
+        <button data-days="1">Today</button>
+        <button data-days="7" class="on">Last 7 days</button>
+        <button data-days="30">Last 30 days</button>
+        <button data-days="90">Last 90 days</button>
+        <button id="refresh">↻ Refresh</button>
+      </div>
+      <label class="toggle"><input type="checkbox" id="ignoreMe"> Don't count my own visits on this device</label>
+    </div>
+
+    <div class="tiles" id="tiles"></div>
+
+    <div class="card"><h2>Visitors per day</h2><div id="chart"></div></div>
+
+    <div class="card"><h2>Games</h2><div id="games"></div></div>
+
+    <div class="grid2">
+      <div class="card"><h2>Countries</h2><div id="countries"></div></div>
+      <div class="card"><h2>Levels reached</h2><div id="levels"></div></div>
+      <div class="card"><h2>Devices</h2><div id="devices"></div></div>
+      <div class="card"><h2>Where visitors came from</h2><div id="refs"></div></div>
+    </div>
+
+    <p class="muted" id="foot"></p>
+  </div>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, query, where, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAfZ-7Y7_hxZVrJTnnFOGihQTLl3gRdGOk",
+  authDomain: "tinygamehub.firebaseapp.com",
+  projectId: "tinygamehub",
+  storageBucket: "tinygamehub.firebasestorage.app",
+  messagingSenderId: "996613580777",
+  appId: "1:996613580777:web:35aebd311c406422374d78"
+};
+const ADMIN_EMAIL = "hasanabisapps@gmail.com";
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const $ = (id) => document.getElementById(id);
+let days = 7;
+
+// ---------- helpers ----------
+const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmtNum = (n) => n.toLocaleString();
+function fmtTime(secs) {
+  secs = Math.round(secs);
+  if (secs < 60) return secs + "s";
+  const m = Math.floor(secs / 60), s = secs % 60;
+  if (m < 60) return m + "m " + s + "s";
+  const h = Math.floor(m / 60);
+  return h + "h " + (m % 60) + "m";
+}
+function prettyGame(slug) {
+  if (slug === "home") return "Home page";
+  return slug.replace(/[-_]+/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+}
+let regionNames = null;
+try { regionNames = new Intl.DisplayNames(["en"], { type: "region" }); } catch (e) {}
+function countryLabel(cc) {
+  if (!cc) return "Unknown";
+  const flag = cc.replace(/./g, ch => String.fromCodePoint(127397 + ch.charCodeAt(0)));
+  let name = cc;
+  try { if (regionNames) name = regionNames.of(cc) || cc; } catch (e) {}
+  return flag + " " + name;
+}
+function dayKey(d) {
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function table(headers, rows, emptyMsg) {
+  if (!rows.length) return '<div class="empty">' + (emptyMsg || "No data yet.") + "</div>";
+  let h = "<table><tr>" + headers.map(x => '<th class="' + (x.n ? "n" : "") + '">' + esc(x.t) + "</th>").join("") + "</tr>";
+  rows.forEach(r => {
+    h += "<tr>" + r.map((c, i) => '<td class="' + (headers[i].n ? "n" : "") + '">' + c + "</td>").join("") + "</tr>";
+  });
+  return h + "</table>";
+}
+function barCell(value, max) {
+  const w = max ? Math.max(2, Math.round((value / max) * 120)) : 2;
+  return '<div class="bar" style="width:' + w + 'px"></div>';
+}
+
+// ---------- sign in ----------
+$("signin").onclick = async () => {
+  $("loginMsg").textContent = "";
+  try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+  catch (e) { $("loginMsg").textContent = "Sign-in didn't work: " + e.message; }
+};
+
+onAuthStateChanged(auth, (user) => {
+  if (!user) {
+    $("who").innerHTML = "";
+    $("login").style.display = "block";
+    $("dash").style.display = "none";
+    return;
+  }
+  if (user.email !== ADMIN_EMAIL) {
+    $("loginMsg").textContent = user.email + " is not the admin account. Please sign in with " + ADMIN_EMAIL + ".";
+    signOut(auth);
+    return;
+  }
+  $("who").innerHTML = '<span class="muted">' + esc(user.email) + '</span> <button id="out">Sign out</button>';
+  $("out").onclick = () => signOut(auth);
+  $("login").style.display = "none";
+  $("dash").style.display = "block";
+  load();
+});
+
+// ---------- controls ----------
+document.querySelectorAll("#ranges button[data-days]").forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll("#ranges button[data-days]").forEach(x => x.classList.remove("on"));
+    b.classList.add("on");
+    days = parseInt(b.dataset.days, 10);
+    load();
+  };
+});
+$("refresh").onclick = () => load();
+
+try { $("ignoreMe").checked = localStorage.getItem("tgh_ignore") === "1"; } catch (e) {}
+$("ignoreMe").onchange = (e) => {
+  try {
+    if (e.target.checked) localStorage.setItem("tgh_ignore", "1");
+    else localStorage.removeItem("tgh_ignore");
+  } catch (err) {}
+};
+
+// ---------- load + crunch ----------
+async function load() {
+  $("tiles").innerHTML = '<div class="muted">Loading…</div>';
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - (days - 1));
+
+  let docs = [];
+  try {
+    const snap = await getDocs(query(collection(db, "plays"), where("ts", ">=", Timestamp.fromDate(start))));
+    snap.forEach(d => docs.push(d.data()));
+  } catch (e) {
+    $("tiles").innerHTML = '<div class="muted">Couldn\'t load data: ' + esc(e.message) + "</div>";
+    return;
+  }
+
+  const visitors = new Set(), newVisitors = new Set();
+  const perDay = {};
+  const games = {};
+  const countries = {}, devices = {}, refs = {};
+  const levels = {};
+  let plays = 0, gameSecs = 0;
+
+  for (let i = 0; i < days; i++) {
+    const d = new Date(start); d.setDate(start.getDate() + i);
+    perDay[dayKey(d)] = new Set();
+  }
+
+  docs.forEach(d => {
+    const t = d.ts && d.ts.toDate ? d.ts.toDate() : null;
+    const secs = Number(d.secs) || 0;
+    const game = d.game || "home";
+    visitors.add(d.vid);
+    if (d.isNew) newVisitors.add(d.vid);
+    if (t) { const k = dayKey(t); if (perDay[k]) perDay[k].add(d.vid); }
+
+    if (!games[game]) games[game] = { plays: 0, players: new Set(), secs: 0, maxLevel: 0 };
+    const g = games[game];
+    g.players.add(d.vid);
+    g.secs += secs;
+    if (!d.cont) g.plays++;
+    if ((d.level || 0) > g.maxLevel) g.maxLevel = d.level;
+
+    if (game !== "home") {
+      gameSecs += secs;
+      if (!d.cont) plays++;
+      if (d.level > 0) {
+        const key = game + "|" + d.level;
+        if (!levels[key]) levels[key] = new Set();
+        levels[key].add(d.vid);
+      }
+    }
+
+    if (!d.cont) {
+      const cc = d.country || "";
+      countries[cc] = countries[cc] || new Set(); countries[cc].add(d.vid);
+      const dev = d.device || "unknown";
+      devices[dev] = devices[dev] || new Set(); devices[dev].add(d.vid);
+      if (d.ref) { refs[d.ref] = refs[d.ref] || new Set(); refs[d.ref].add(d.vid); }
+    }
+  });
+
+  // Tiles
+  const tiles = [
+    ["Visitors", fmtNum(visitors.size)],
+    ["New visitors", fmtNum(newVisitors.size)],
+    ["Game plays", fmtNum(plays)],
+    ["Total play time", fmtTime(gameSecs)],
+    ["Avg time per play", plays ? fmtTime(gameSecs / plays) : "–"]
+  ];
+  $("tiles").innerHTML = tiles.map(([l, v]) => '<div class="tile"><div class="l">' + l + '</div><div class="v">' + v + "</div></div>").join("");
+
+  // Chart
+  const keys = Object.keys(perDay);
+  const vals = keys.map(k => perDay[k].size);
+  const max = Math.max(1, ...vals);
+  const W = 1000, H = 200, pad = 24, bw = (W - pad * 2) / keys.length;
+  let svg = '<svg viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none">';
+  keys.forEach((k, i) => {
+    const h = Math.round((vals[i] / max) * (H - 50));
+    const x = pad + i * bw + bw * 0.15, w = bw * 0.7, y = H - 24 - h;
+    svg += '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + Math.max(h, 1) + '" rx="3" fill="#5ec8ff"><title>' + k + ": " + vals[i] + " visitors</title></rect>";
+    if (vals[i] && keys.length <= 31) svg += '<text x="' + (x + w / 2) + '" y="' + (y - 5) + '" fill="#e9ecf7" font-size="13" text-anchor="middle">' + vals[i] + "</text>";
+    const every = Math.ceil(keys.length / 10);
+    if (i % every === 0) svg += '<text x="' + (x + w / 2) + '" y="' + (H - 6) + '" fill="#9aa3c2" font-size="12" text-anchor="middle">' + k.slice(5) + "</text>";
+  });
+  $("chart").innerHTML = svg + "</svg>";
+
+  // Games table
+  const gRows = Object.entries(games).sort((a, b) => b[1].plays - a[1].plays);
+  const maxPlays = Math.max(0, ...gRows.map(([, g]) => g.plays));
+  $("games").innerHTML = table(
+    [{ t: "Game" }, { t: "" }, { t: "Plays", n: 1 }, { t: "Players", n: 1 }, { t: "Total time", n: 1 }, { t: "Avg time", n: 1 }, { t: "Highest level", n: 1 }],
+    gRows.map(([name, g]) => [
+      esc(prettyGame(name)), barCell(g.plays, maxPlays), fmtNum(g.plays), fmtNum(g.players.size),
+      fmtTime(g.secs), g.plays ? fmtTime(g.secs / g.plays) : "–", g.maxLevel || "–"
+    ])
+  );
+
+  const setTable = (obj, label) => Object.entries(obj).map(([k, s]) => [k, s.size]).sort((a, b) => b[1] - a[1]).slice(0, 20);
+
+  const cRows = setTable(countries);
+  const cMax = cRows.length ? cRows[0][1] : 0;
+  $("countries").innerHTML = table([{ t: "Country" }, { t: "" }, { t: "Visitors", n: 1 }],
+    cRows.map(([cc, n]) => [esc(countryLabel(cc)), barCell(n, cMax), fmtNum(n)]));
+
+  const lRows = Object.entries(levels).map(([k, s]) => { const [g, l] = k.split("|"); return [g, +l, s.size]; })
+    .sort((a, b) => a[0].localeCompare(b[0]) || a[1] - b[1]);
+  $("levels").innerHTML = table([{ t: "Game" }, { t: "Level", n: 1 }, { t: "Players", n: 1 }],
+    lRows.map(([g, l, n]) => [esc(prettyGame(g)), l, fmtNum(n)]),
+    "No level data yet. Games need a small update to report levels.");
+
+  const dRows = setTable(devices);
+  const dMax = dRows.length ? dRows[0][1] : 0;
+  $("devices").innerHTML = table([{ t: "Device" }, { t: "" }, { t: "Visitors", n: 1 }],
+    dRows.map(([d, n]) => [esc(d.charAt(0).toUpperCase() + d.slice(1)), barCell(n, dMax), fmtNum(n)]));
+
+  const rRows = setTable(refs);
+  const rMax = rRows.length ? rRows[0][1] : 0;
+  $("refs").innerHTML = table([{ t: "Website" }, { t: "" }, { t: "Visitors", n: 1 }],
+    rRows.map(([r, n]) => [esc(r), barCell(n, rMax), fmtNum(n)]),
+    "No outside links yet. Visitors who typed the address or used a bookmark don't show here.");
+
+  $("foot").textContent = "Loaded " + fmtNum(docs.length) + " records (uses " + fmtNum(docs.length) +
+    " of your 50,000 free daily reads). Shorter date ranges use fewer reads.";
+}
+</script>
+</body>
+</html>
